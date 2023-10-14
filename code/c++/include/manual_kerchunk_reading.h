@@ -77,6 +77,7 @@ Aws::IOStream& printByteStream(Aws::String bucketName,
  */
 void manualKerchunkRead(Aws::String bucketName, 
                         Aws::String objectName, 
+                        Aws::S3::S3Client client,
                         int startByte, 
                         int numBytes, 
                         char decompressor[],
@@ -101,8 +102,80 @@ void manualKerchunkRead(Aws::String bucketName,
     std::string result = "bytes="+start+"-"+end;
     const char* bytesRange = result.c_str();
     request.WithRange(bytesRange);
+    auto getObjectOutcome = client.GetObject(request);
+
+
 
 
 }
 
 #endif
+
+/**
+ * @brief
+ * @param 
+ * @return void
+ */
+void decompressZlib() {
+    // TODO
+
+}
+
+/**
+ * @brief equivalent to numpy.frombuffer()
+ * @param 
+ * @return void
+ * @note must account for dtype reading e.g. dtype='<f4'
+ */
+void bufToArr() {
+    // TODO
+
+}
+
+
+/**
+ * @brief
+ * https://github.com/zarr-developers/numcodecs/blob/main/numcodecs/_shuffle.pyx
+ * @param 
+ * @return void
+ */
+void shuffle(std::vector<uint8_t> buf[], char level[]) {
+
+    /*
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cpdef void _doShuffle(const unsigned char[::1] src, unsigned char[::1] des, Py_ssize_t element_size) nogil:
+        cdef Py_ssize_t count, i, j, offset, byte_index
+        count = len(src) // element_size
+        for i in range(count):
+            offset = i*element_size
+            for byte_index in range(element_size):
+                j = byte_index*count + i
+                des[j] = src[offset + byte_index] */
+
+
+    // TODO
+}
+
+/**
+ * @brief numcodec styled undo byte shuffle
+ * https://github.com/zarr-developers/numcodecs/blob/main/numcodecs/_shuffle.pyx
+ * @param buf, level
+ * @return void
+ */
+void undoShuffle(std::vector<uint8_t> buf[], char level[]){
+    /*
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cpdef void _doUnshuffle(const unsigned char[::1] src, unsigned char[::1] des, Py_ssize_t element_size) nogil:
+        cdef Py_ssize_t count, i, j, offset, byte_index
+        count = len(src) // element_size
+        for i in range(element_size):
+            offset = i*count
+            for byte_index in range(count):
+                j = byte_index*element_size + i
+                des[j] = src[offset+byte_index] */
+
+    // TODO
+
+}
