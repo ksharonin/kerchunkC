@@ -12,6 +12,11 @@
 #include <zlib.h>
 using namespace std;
 
+struct DecompressionResult {
+    uLong size;
+    Bytef* buffer;
+};
+
 #ifndef PRINT_BYTES_BINARY
 #define PRINT_BYTES_BINARY
 /**
@@ -44,11 +49,10 @@ Aws::IOStream& printByteStream(Aws::String bucketName,
     }
     else {
         Aws::IOStream& byteStream = getObjectOutcome.GetResultWithOwnership().GetBody();
-
+        std::cout << std::endl;
         std::cout << "Successfully retrieved '" << objectName << "' from '"
                 << bucketName << "'." << std::endl;
-
-
+        std::cout << std::endl;
         // w buffer write to console
         char byte;
         while (byteStream.get(byte)) {
@@ -63,6 +67,69 @@ Aws::IOStream& printByteStream(Aws::String bucketName,
 }
 
 #endif
+
+/**
+ * @brief zlib decompression of byte stream
+ * @param 
+ * @return void
+ * https://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/lxr/source/include/util/compress/zlib/zlib.h 
+ * 
+ */
+DecompressionResult* decompressZlib(Bytef* compressedData, 
+                                   // Bytef* outputData, 
+                                   uLong compressedSize, 
+                                   uLong destSize) {
+
+    Bytef* destBuffer = new Bytef[destSize];
+
+    z_stream stream;
+    stream.zalloc = Z_NULL;
+    stream.zfree = Z_NULL;
+    stream.opaque = Z_NULL;
+    stream.avail_in = 0;
+    stream.next_in = Z_NULL;
+
+    int result = inflateInit(&stream);
+    if (result != Z_OK) {
+        delete[] destBuffer;
+        return nullptr;
+    }
+
+    stream.avail_in = static_cast<uInt>(compressedSize);
+    stream.next_in = compressedData;
+    stream.avail_out = static_cast<uInt>(destSize);
+    stream.next_out = destBuffer;
+
+    result = inflate(&stream, Z_NO_FLUSH);
+
+    while (result == Z_BUF_ERROR || result != Z_STREAM_END) {
+        if (destSize >= static_cast<uLong>(1) << 31) {
+            throw std::runtime_error("Excessive size of destSize, failed zlib decompression");
+            inflateEnd(&stream);
+            return nullptr;
+        }
+        delete[] destBuffer;
+        destSize *= 2;
+        destBuffer = new Bytef[destSize];
+        stream.next_out = destBuffer;
+        stream.avail_out = static_cast<uInt>(destSize);
+        result = inflate(&stream, Z_NO_FLUSH);
+    }
+
+    if (result != Z_STREAM_END) {
+        delete[] destBuffer;
+        inflateEnd(&stream);
+        return nullptr;
+    }
+    inflateEnd(&stream);
+
+    DecompressionResult* resultStruct = new DecompressionResult;
+    resultStruct->size = destSize;
+    resultStruct->buffer = destBuffer;
+
+    return resultStruct;
+
+}
 
 #ifndef MANUAL_KREAD
 #define MANUAL_KREAD
@@ -81,10 +148,10 @@ Aws::IOStream& printByteStream(Aws::String bucketName,
 void manualKerchunkRead(Aws::String bucketName, 
                         Aws::String objectName, 
                         Aws::S3::S3Client client,
-                        int startByte, 
-                        int numBytes, 
-                        char decompressor[],
-                        char filters[]) {
+                        unsigned int startByte, 
+                        unsigned int numBytes, 
+                        const char* decompressor,
+                        const char* filters) {
     // TODO - recreate:
     // buf = zlib.decompress(content)
     // buf = numcodecs.shuffle.Shuffle(4).decode(buf)
@@ -121,16 +188,37 @@ void manualKerchunkRead(Aws::String bucketName,
         // pass retrievedBytes to zlib decompressor
         Bytef* compressedData = reinterpret_cast<Bytef*>(retrievedBytes.data());
         uLong compressedSize = static_cast<uLong>(retrievedBytes.size());
-        uLong destSize = static_cast<uLong>(retrievedBytes.size() * 2); // this can be dynamically resized inside
-        Bytef* outputPtr = nullptr;
+        uLong initDestSize = static_cast<uLong>(retrievedBytes.size() * 2); // this can be dynamically resized inside
 
-        // zlib decompress
-        outputData.assign(outputPtr, outputPtr + destSize);
+        // zlib decompress - size may change based on read
+        DecompressionResult* dresult = decompressZlib(compressedData, compressedSize, initDestSize);
+        assert(dresult->size != 0);
+        assert(dresult->buffer != nullptr);
+
+        // custom for debugging
+        uLong startIndex = 1900;
+        uLong endIndex = 2000;
+        std::cout << std::endl;
+        std::cout << "Print bytes from index " << static_cast<unsigned long>(startIndex) << " to " << static_cast<unsigned long>(endIndex) << " as binary bytes..." << std::endl;
+        std::cout << std::endl;
+        uLong rangeToPrint = endIndex - startIndex + 1; // Number of bytes to print
+        for (uLong i = startIndex; i <= endIndex; i++) {
+            Bytef byte = dresult->buffer[i];
+            for (int bit = 7; bit >= 0; bit--) {
+                std::cout << ((byte >> bit) & 1); // Print each bit in the byte
+            }
+            std::cout << " "; // Separate bytes with a space
+        }
+        std::cout << std::endl;
 
         // numcodecs shuffle
+        // undoShuffle()
 
         // numpy decode read
+        // bufToArr()
 
+        delete[] dresult->buffer;
+        delete dresult;
 
     } else {
         std::cerr << "Error: " << getObjectOutcome.GetError().GetExceptionName() << ": " << getObjectOutcome.GetError().GetMessage() << std::endl;
@@ -139,71 +227,6 @@ void manualKerchunkRead(Aws::String bucketName,
 }
 
 #endif
-
-/**
- * @brief zlib decompression of byte stream
- * @param 
- * @return void
- * https://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/lxr/source/include/util/compress/zlib/zlib.h 
- * 
- */
-uLong decompressZlib(Bytef* compressedData, Bytef* outputData, uLong compressedSize, uLong destSize) {
-
-    Bytef* destBuffer = new Bytef[destSize];
-    z_stream stream;
-    stream.zalloc = Z_NULL;
-    stream.zfree = Z_NULL;
-    stream.opaque = Z_NULL;
-    stream.avail_in = 0;
-    stream.next_in = Z_NULL;
-
-    int result = inflateInit(&stream);
-    if (result != Z_OK) {
-        // init error handling
-        delete[] destBuffer;
-        return;
-    }
-
-    // num bytes of input stream + input stream address
-    stream.avail_in = static_cast<uInt>(compressedSize); 
-    stream.next_in = compressedData;
-    // out size + dest
-    stream.avail_out = static_cast<uInt>(destSize);
-    stream.next_out = destBuffer;
-
-    result = inflate(&stream, Z_NO_FLUSH);
-
-    // retry / grow buf until can fit all data in
-    while (result == Z_BUF_ERROR) {
-        if (destSize >= pow(2.0, 31.0)) {
-            throw std::runtime_error("excessive size of destSize, failed zlib decompression");
-            return;
-        }
-        delete[] destBuffer;
-        destSize *= 2;
-        destBuffer = new Bytef[destSize];
-        stream.next_out = destBuffer;
-        stream.avail_out = static_cast<uInt>(destSize);
-        result = inflate(&stream, Z_NO_FLUSH);
-    }
-
-    if (result != Z_STREAM_END) {
-        // decompression error handling
-        delete[] destBuffer;
-        inflateEnd(&stream);
-        return;
-    }
-    inflateEnd(&stream);
-    // destBuffer now has inflated data, copy over to other stack memory
-    outputData = new Bytef[destSize];
-    std::memcpy(outputData, destBuffer, destSize);
-    // release memory
-    delete[] destBuffer;
-
-    // indicate final size since it was modified
-    return destSize;
-
-}
 
 /**
  * @brief equivalent to numpy.frombuffer()
