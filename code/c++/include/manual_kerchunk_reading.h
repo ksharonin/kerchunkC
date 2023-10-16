@@ -71,7 +71,7 @@ Aws::IOStream& printByteStream(Aws::String bucketName,
 /**
  * @brief zlib decompression of byte stream
  * @param 
- * @return void
+ * @return DecompressionResult*
  * https://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/lxr/source/include/util/compress/zlib/zlib.h 
  * 
  */
@@ -131,6 +131,51 @@ DecompressionResult* decompressZlib(Bytef* compressedData,
 
 }
 
+#ifndef UNDO_SHUFFLE
+#define UNDO_SHUFFLE
+
+/**
+ * @brief numcodec styled undo byte shuffle
+ * https://github.com/zarr-developers/numcodecs/blob/main/numcodecs/_shuffle.pyx
+ * @param buf, level, count
+ * @return void
+ */
+void undoShuffle(unsigned char* src, unsigned char* dest, uLong element_size, uLong count){
+
+    for (uLong i = 0; i < element_size; i++) {
+        uLong offset = i*count;
+        for (uLong byte_index = 0; byte_index < count; byte_index++) {
+            uLong j = byte_index*element_size + i;
+            dest[j] = src[offset+byte_index];
+
+        }
+    }
+
+}
+#endif
+
+
+#ifndef BUF_TO_FLOATARR
+#define BUF_TO_FLOATARR
+
+/**
+ * @brief equivalent to numpy.frombuffer() - <f4 dtype
+ * @param data, dataSize, floatArray
+ * @return void
+ */
+void fromBufToFloatArr(unsigned char* data, uLong dataSize, std::vector<float>& floatArray) {
+    
+    if (dataSize % sizeof(float) != 0) {
+        std::cerr << "Invalid data size. It must be a multiple of sizeof(float)." << std::endl;
+        return;
+    }
+    uLong numFloats = dataSize / sizeof(float);
+    floatArray.resize(numFloats);
+    std::memcpy(floatArray.data(), data, dataSize);
+}
+
+#endif
+
 #ifndef MANUAL_KREAD
 #define MANUAL_KREAD
 
@@ -144,6 +189,7 @@ DecompressionResult* decompressZlib(Bytef* compressedData,
  * how to condition on this? mapping/dict
  * @note make sure "outputData.assign(outputPtr, outputPtr + destSize);" correctly sizes up
  * maybe consider printing vals in the decompressor?
+ * @note implement ability to do numcodecs.shuffle.Shuffle(4).decode(buf) where 4 is elem_size
  */
 void manualKerchunkRead(Aws::String bucketName, 
                         Aws::String objectName, 
@@ -152,10 +198,6 @@ void manualKerchunkRead(Aws::String bucketName,
                         unsigned int numBytes, 
                         const char* decompressor,
                         const char* filters) {
-    // TODO - recreate:
-    // buf = zlib.decompress(content)
-    // buf = numcodecs.shuffle.Shuffle(4).decode(buf)
-    // chunk = np.frombuffer(buf, dtype='<f4')
 
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket(bucketName);
@@ -211,13 +253,46 @@ void manualKerchunkRead(Aws::String bucketName,
         }
         std::cout << std::endl;
 
-        // numcodecs shuffle
-        // undoShuffle()
+        // cast to unsig char* for undoShuffle
+        unsigned char* buf = reinterpret_cast<unsigned char*>(dresult->buffer);
+        for (uLong i = 0; i < dresult->size; i++) {
+            unsigned char byteElement = static_cast<unsigned char>(buf[i]);
+        }
+        
+        std::cout << std::endl;
+        std::cout << "After Shuffle, print bytes from index " << static_cast<unsigned long>(startIndex) << " to " << static_cast<unsigned long>(endIndex) << " as binary bytes..." << std::endl;
+        std::cout << std::endl;
 
-        // numpy decode read
-        // bufToArr()
+        // numcodecs shuffle
+        unsigned char* dest = new unsigned char[dresult->size];
+        undoShuffle(buf, dest, 4, dresult->size);
+
+        for (int i = startIndex; i <= endIndex; i++) {
+            // Convert each character to its binary representation
+            for (int j = 7; j >= 0; j--) {
+                char bit = (dest[i] & (1 << j)) ? '1' : '0';
+                std::cout << bit;
+            }
+                std::cout << ' ';
+        }
+
+        std::cout << std::endl;
+
+        // numpy decode read - manual <f4 selected out
+        std::string dtype = "<f4";
+        std::vector<float> floatArr;
+        fromBufToFloatArr(dest, dresult->size, floatArr);
+
+        std::cout << std::endl;
+        std::cout << "Print sample float values..." << std::endl;
+        std::cout << std::endl;
+        for (uLong i = 0; i <= 50; ++i) {
+            std::cout << floatArr[i] << " ";
+        }
+        std::cout << std::endl;
 
         delete[] dresult->buffer;
+        delete[] dest;
         delete dresult;
 
     } else {
@@ -225,65 +300,26 @@ void manualKerchunkRead(Aws::String bucketName,
     }
 
 }
-
 #endif
 
+
 /**
- * @brief equivalent to numpy.frombuffer()
+ * @brief main entry point for numpy.frombuffer(); call halpers based on dtype
  * @param 
  * @return void
  * @note must account for dtype reading e.g. dtype='<f4'
  * https://numpy.org/doc/stable/reference/generated/numpy.frombuffer.html
  */
-void bufToArr() {
+void bufToArr(unsigned char* buf, std::string dtype) {
     // TODO
+    if (dtype == "<f4") {
+
+    }
+    else {
+        std::cout << "reading for this dtype not implemented" << std::endl;
+
+    }
 
 }
 
 
-/**
- * @brief
- * https://github.com/zarr-developers/numcodecs/blob/main/numcodecs/_shuffle.pyx
- * @param 
- * @return void
- */
-void shuffle(std::vector<uint8_t> buf[], char level[]) {
-
-    /*
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef void _doShuffle(const unsigned char[::1] src, unsigned char[::1] des, Py_ssize_t element_size) nogil:
-        cdef Py_ssize_t count, i, j, offset, byte_index
-        count = len(src) // element_size
-        for i in range(count):
-            offset = i*element_size
-            for byte_index in range(element_size):
-                j = byte_index*count + i
-                des[j] = src[offset + byte_index] */
-
-
-    // TODO
-}
-
-/**
- * @brief numcodec styled undo byte shuffle
- * https://github.com/zarr-developers/numcodecs/blob/main/numcodecs/_shuffle.pyx
- * @param buf, level
- * @return void
- */
-void undoShuffle(std::vector<uint8_t> buf[], char level[]){
-    /*
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef void _doUnshuffle(const unsigned char[::1] src, unsigned char[::1] des, Py_ssize_t element_size) nogil:
-        cdef Py_ssize_t count, i, j, offset, byte_index
-        count = len(src) // element_size
-        for i in range(element_size):
-            offset = i*count
-            for byte_index in range(count):
-                j = byte_index*element_size + i
-                des[j] = src[offset+byte_index] */
-
-    // TODO
-
-}
