@@ -9,6 +9,7 @@
 #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
 #include "manual_kerchunk_reading.h"
+#include "json_parse.h"
 using namespace std;
 
 #ifndef MAIN_RUN
@@ -25,6 +26,12 @@ int main() {
 
         Aws::Client::ClientConfiguration clientConfig;
         Aws::S3::S3Client client(clientConfig); // clientConfig.region = "us-east-1";
+
+        // test JSON read
+        std::cout << std::endl;
+        std::cout << "Testing JSON read..." << std::endl;
+        readJsonFromFile("/Users/katrinasharonin/Downloads/kerchunkC/code/jupyter/01_air_pressure_at_mean_sea_level.json");
+        std::cout << "JSON read success!" << std::endl;
 
         // test byte stream
         std::cout << std::endl;
@@ -44,9 +51,6 @@ int main() {
         std::cout << std::endl;
         std::cout << "Converting binary stream to decoded/decompressed chunks..." << std::endl;
         manualKerchunkRead(bucketName, objectName, client, 19226, 256358, compressionType, shuffleType);
-
-        // TODO: run comparison against xarray engine read
-        // manualXarrayTest()
 
         std::cout << std::endl;
         std::cout << "Done!" << std::endl;
