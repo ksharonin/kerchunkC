@@ -157,7 +157,9 @@ DecompressionResult* decompressZlib(Bytef* compressedData,
  * @param buf, level, count
  * @return void
  */
-void undoShuffle(unsigned char* src, unsigned char* dest, uLong element_size, uLong count){
+void undoShuffle(unsigned char* src, unsigned char* dest, uLong element_size, uLong len){
+
+    uLong count = len / element_size;
 
     for (uLong i = 0; i < element_size; i++) {
         uLong offset = i*count;
@@ -259,9 +261,14 @@ std::vector<Bytef> compressData(Bytef* inputData,
     compressedData.resize(outputBufferSize - stream.avail_out);
 
     std::cout << std::endl;
-    std::cout << "Compressed Data: ";
+    std::cout << "Compressed Data (Binary): ";
     for (size_t i = 0; i < 100 && i < compressedData.size(); ++i) {
-        std::cout << std::hex << static_cast<int>(compressedData[i]) << " ";
+        Bytef byte = compressedData[i];
+        // std::cout << "\\x";
+        for (int bit = 7; bit >= 0; --bit) {
+            std::cout << ((byte >> bit) & 1);
+        }
+        std::cout << " ";
     }
     std::cout << std::dec << std::endl;
 
