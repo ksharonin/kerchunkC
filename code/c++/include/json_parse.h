@@ -32,8 +32,17 @@ void readJsonFromFile(std::string path_to_json){
     try {
         json jsonData;
         jsonFile >> jsonData;
-        // std::string name = jsonData["name"];
-        // std::cout << "Name: " << name << std::endl;
+        
+        // hardcoded example 
+        int start_byte = jsonData["refs"]["air_pressure_at_mean_sea_level/0.0.0"][1];
+        std::cout << "start_byte of 0.0.0: " << start_byte << std::endl;
+
+        // list keys
+        for (auto it = jsonData.begin(); it != jsonData.end(); ++it) {
+            std::string key = it.key();
+            std::cout << "Key: " << key << std::endl;
+        }
+
     } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
     }

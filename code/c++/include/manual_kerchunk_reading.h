@@ -5,12 +5,18 @@
  */
 
 #include <iostream>
+#include <bit>
+#include <cstdint>
+#include <vector>
+#include <cstring>
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
 #include <zlib.h>
-using namespace std;
+// using namespace std;
+
+const bool SYS_LITTLE_ENDIAN = htonl(47) != 47;
 
 struct DecompressionResult {
     uLong size;
@@ -73,7 +79,7 @@ Aws::IOStream& printByteStream(Aws::String bucketName,
  * @param 
  * @return DecompressionResult*
  * https://www.ncbi.nlm.nih.gov/IEB/ToolBox/CPP_DOC/lxr/source/include/util/compress/zlib/zlib.h 
- * 
+ * https://www.zlib.net/manual.html#Basic:~:text=ZEXTERN%20int%20ZEXPORT-,inflate,-(z_streamp%20strm%2C%20int
  */
 DecompressionResult* decompressZlib(Bytef* compressedData, 
                                    // Bytef* outputData, 
@@ -95,9 +101,9 @@ DecompressionResult* decompressZlib(Bytef* compressedData,
         return nullptr;
     }
 
-    stream.avail_in = static_cast<uInt>(compressedSize);
+    stream.avail_in = compressedSize;
     stream.next_in = compressedData;
-    stream.avail_out = static_cast<uInt>(destSize);
+    stream.avail_out = destSize;
     stream.next_out = destBuffer;
 
     result = inflate(&stream, Z_NO_FLUSH);
@@ -111,8 +117,19 @@ DecompressionResult* decompressZlib(Bytef* compressedData,
         delete[] destBuffer;
         destSize *= 2;
         destBuffer = new Bytef[destSize];
+        result = inflateReset(&stream);
+        stream.avail_in = compressedSize;
+        stream.next_in = compressedData;
         stream.next_out = destBuffer;
-        stream.avail_out = static_cast<uInt>(destSize);
+        stream.avail_out = destSize;
+
+        // reset error
+        if (result != Z_OK) {
+            delete[] destBuffer;
+            inflateEnd(&stream);
+            return nullptr;
+        }
+
         result = inflate(&stream, Z_NO_FLUSH);
     }
 
@@ -154,6 +171,25 @@ void undoShuffle(unsigned char* src, unsigned char* dest, uLong element_size, uL
 }
 #endif
 
+#ifndef SWAP_BYTES_FLOAT
+#define SWAP_BYTES_FLOAT
+
+/**
+ * @brief swap bytes of float values
+ * @param value
+ * @return void
+ */
+void swapBytesFloat(float& value) {
+    uint32_t intValue;
+    std::memcpy(&intValue, &value, sizeof(float));
+    uint8_t* bytes = reinterpret_cast<uint8_t*>(&intValue);
+
+    std::swap(bytes[0], bytes[3]);
+    std::swap(bytes[1], bytes[2]);
+
+    std::memcpy(&value, &intValue, sizeof(float));
+}
+#endif
 
 #ifndef BUF_TO_FLOATARR
 #define BUF_TO_FLOATARR
@@ -171,10 +207,67 @@ void fromBufToFloatArr(unsigned char* data, uLong dataSize, std::vector<float>& 
     }
     uLong numFloats = dataSize / sizeof(float);
     floatArray.resize(numFloats);
-    std::memcpy(floatArray.data(), data, dataSize);
+
+    for (uLong i = 0; i < numFloats; ++i) {
+        std::memcpy(&floatArray[i], &data[i * sizeof(float)], sizeof(float));
+        if (SYS_LITTLE_ENDIAN) {
+            swapBytesFloat(floatArray[i]);
+        }
+    }
+    
+    
 }
 
 #endif
+
+#include <zlib.h>
+#include <vector>
+#include <iostream>
+
+// temporary compression function
+std::vector<Bytef> compressData(Bytef* inputData, 
+                                uLong inputSize, 
+                                int compressionLevel = Z_BEST_COMPRESSION) {
+    std::vector<Bytef> compressedData;
+
+    z_stream stream;
+    stream.zalloc = Z_NULL;
+    stream.zfree = Z_NULL;
+    stream.opaque = Z_NULL;
+
+    int result = deflateInit(&stream, compressionLevel);
+    if (result != Z_OK) {
+        return compressedData;
+    }
+
+    stream.avail_in = static_cast<uInt>(inputSize);
+    stream.next_in = const_cast<Bytef*>(inputData);
+    
+    uLong outputBufferSize = deflateBound(&stream, inputSize);
+    compressedData.resize(outputBufferSize);
+    stream.avail_out = static_cast<uInt>(outputBufferSize);
+    stream.next_out = &compressedData[0];
+
+    result = deflate(&stream, Z_FINISH);
+    if (result != Z_STREAM_END) {
+        deflateEnd(&stream);
+        return compressedData;
+    }
+
+    deflateEnd(&stream);
+
+    compressedData.resize(outputBufferSize - stream.avail_out);
+
+    std::cout << std::endl;
+    std::cout << "Compressed Data: ";
+    for (size_t i = 0; i < 100 && i < compressedData.size(); ++i) {
+        std::cout << std::hex << static_cast<int>(compressedData[i]) << " ";
+    }
+    std::cout << std::dec << std::endl;
+
+    return compressedData;
+}
+
 
 #ifndef MANUAL_KREAD
 #define MANUAL_KREAD
@@ -238,20 +331,23 @@ void manualKerchunkRead(Aws::String bucketName,
         assert(dresult->buffer != nullptr);
 
         // custom for debugging
-        uLong startIndex = 1900;
-        uLong endIndex = 2000;
+        uLong startIndex = 0;
+        uLong endIndex = 101;
         std::cout << std::endl;
-        std::cout << "Print bytes from index " << static_cast<unsigned long>(startIndex) << " to " << static_cast<unsigned long>(endIndex) << " as binary bytes..." << std::endl;
+        std::cout << "After decompression, print bytes from index " << static_cast<unsigned long>(startIndex) << " to " << static_cast<unsigned long>(endIndex) << " as binary bytes..." << std::endl;
         std::cout << std::endl;
-        uLong rangeToPrint = endIndex - startIndex + 1; // Number of bytes to print
+        uLong rangeToPrint = endIndex - startIndex + 1; 
         for (uLong i = startIndex; i <= endIndex; i++) {
             Bytef byte = dresult->buffer[i];
             for (int bit = 7; bit >= 0; bit--) {
-                std::cout << ((byte >> bit) & 1); // Print each bit in the byte
+                std::cout << ((byte >> bit) & 1); 
             }
-            std::cout << " "; // Separate bytes with a space
+            std::cout << " "; 
         }
         std::cout << std::endl;
+
+        // TEMPORARY: compress decompression result, print in hex
+        std::vector<Bytef> compressRes = compressData(dresult->buffer,  dresult->size, 4);
 
         // cast to unsig char* for undoShuffle
         unsigned char* buf = reinterpret_cast<unsigned char*>(dresult->buffer);
@@ -286,7 +382,7 @@ void manualKerchunkRead(Aws::String bucketName,
         std::cout << std::endl;
         std::cout << "Print sample float values..." << std::endl;
         std::cout << std::endl;
-        for (uLong i = 0; i <= 50; ++i) {
+        for (uLong i = 0; i <= 100; ++i) {
             std::cout << floatArr[i] << " ";
         }
         std::cout << std::endl;

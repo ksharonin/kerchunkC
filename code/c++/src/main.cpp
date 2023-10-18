@@ -22,7 +22,7 @@ int main() {
         // hardcoded settings
         const Aws::String bucketName = "era5-pds";
         const Aws::String objectName = "2020/01/data/air_pressure_at_mean_sea_level.nc";
-        char bytesRange[] = "bytes=0-49";
+        char bytesRange[] = "bytes=19226-19326";
 
         Aws::Client::ClientConfiguration clientConfig;
         Aws::S3::S3Client client(clientConfig); // clientConfig.region = "us-east-1";
