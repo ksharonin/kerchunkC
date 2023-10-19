@@ -144,9 +144,14 @@ DecompressionResult* decompressZlib(Bytef* compressedData,
     }
     inflateEnd(&stream);
 
+    // crop destBuffer due to possible excess size
+    Bytef* resized = new Bytef[stream.total_out];
+    std::memcpy(resized, destBuffer, stream.total_out);
+    delete[] destBuffer;
+
     DecompressionResult* resultStruct = new DecompressionResult;
-    resultStruct->size = stream.total_out; // total number of bytes out
-    resultStruct->buffer = destBuffer;
+    resultStruct->size = stream.total_out;
+    resultStruct->buffer = resized;
 
     return resultStruct;
 
@@ -227,60 +232,6 @@ void fromBufToFloatArr(unsigned char* data, uLong dataSize, std::vector<float>& 
 }
 
 #endif
-
-#include <zlib.h>
-#include <vector>
-#include <iostream>
-
-// temporary compression function
-std::vector<Bytef> compressData(Bytef* inputData, 
-                                uLong inputSize, 
-                                int compressionLevel = Z_BEST_COMPRESSION) {
-    std::vector<Bytef> compressedData;
-
-    z_stream stream;
-    stream.zalloc = Z_NULL;
-    stream.zfree = Z_NULL;
-    stream.opaque = Z_NULL;
-
-    int result = deflateInit(&stream, compressionLevel);
-    if (result != Z_OK) {
-        return compressedData;
-    }
-
-    stream.avail_in = static_cast<uInt>(inputSize);
-    stream.next_in = const_cast<Bytef*>(inputData);
-    
-    uLong outputBufferSize = deflateBound(&stream, inputSize);
-    compressedData.resize(outputBufferSize);
-    stream.avail_out = static_cast<uInt>(outputBufferSize);
-    stream.next_out = &compressedData[0];
-
-    result = deflate(&stream, Z_FINISH);
-    if (result != Z_STREAM_END) {
-        deflateEnd(&stream);
-        return compressedData;
-    }
-
-    deflateEnd(&stream);
-
-    compressedData.resize(outputBufferSize - stream.avail_out);
-
-    std::cout << std::endl;
-    std::cout << "Compressed Data (Binary): ";
-    for (size_t i = 0; i < 100 && i < compressedData.size(); ++i) {
-        Bytef byte = compressedData[i];
-        // std::cout << "\\x";
-        for (int bit = 7; bit >= 0; --bit) {
-            std::cout << ((byte >> bit) & 1);
-        }
-        std::cout << " ";
-    }
-    std::cout << std::dec << std::endl;
-
-    return compressedData;
-}
-
 
 #ifndef MANUAL_KREAD
 #define MANUAL_KREAD
@@ -377,15 +328,14 @@ void manualKerchunkRead(Aws::String bucketName,
         std::size_t len = static_cast<std::size_t>(dresult->size);
         undoShuffle(buf, dest, 4, len);
 
+        // b print 
         for (int i = startIndex; i <= endIndex; i++) {
-            // Convert each character to its binary representation
             for (int j = 7; j >= 0; j--) {
                 char bit = (dest[i] & (1 << j)) ? '1' : '0';
                 std::cout << bit;
             }
                 std::cout << ' ';
         }
-
         std::cout << std::endl;
 
         // numpy decode read - manual <f4 selected out
@@ -414,7 +364,7 @@ void manualKerchunkRead(Aws::String bucketName,
 
 
 /**
- * @brief main entry point for numpy.frombuffer(); call halpers based on dtype
+ * @brief UNFINISHED main entry point for numpy.frombuffer(); call halpers based on dtype
  * @param 
  * @return void
  * @note must account for dtype reading e.g. dtype='<f4'
@@ -423,13 +373,11 @@ void manualKerchunkRead(Aws::String bucketName,
 void bufToArr(unsigned char* buf, std::string dtype) {
     // TODO
     if (dtype == "<f4") {
-
+        std::cout << "reading for this dtype not implemented" << std::endl;
     }
     else {
         std::cout << "reading for this dtype not implemented" << std::endl;
-
     }
-
 }
 
 
