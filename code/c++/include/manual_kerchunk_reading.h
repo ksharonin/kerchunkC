@@ -16,7 +16,11 @@
 #include <zlib.h>
 // using namespace std;
 
-const bool SYS_LITTLE_ENDIAN = htonl(47) != 47;
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+const bool SYS_LITTLE_ENDIAN = true;
+#else
+const bool SYS_LITTLE_ENDIAN = false;
+#endif
 
 struct DecompressionResult {
     uLong size;
@@ -141,7 +145,7 @@ DecompressionResult* decompressZlib(Bytef* compressedData,
     inflateEnd(&stream);
 
     DecompressionResult* resultStruct = new DecompressionResult;
-    resultStruct->size = destSize;
+    resultStruct->size = stream.total_out; // total number of bytes out
     resultStruct->buffer = destBuffer;
 
     return resultStruct;
@@ -157,14 +161,14 @@ DecompressionResult* decompressZlib(Bytef* compressedData,
  * @param buf, level, count
  * @return void
  */
-void undoShuffle(unsigned char* src, unsigned char* dest, uLong element_size, uLong len){
+void undoShuffle(unsigned char* src, unsigned char* dest,  std::size_t element_size, std::size_t len){
 
-    uLong count = len / element_size;
+    std::size_t count = len / element_size;
 
-    for (uLong i = 0; i < element_size; i++) {
-        uLong offset = i*count;
-        for (uLong byte_index = 0; byte_index < count; byte_index++) {
-            uLong j = byte_index*element_size + i;
+    for (std::size_t i = 0; i < element_size; i++) {
+        std::size_t offset = i*count;
+        for (std::size_t byte_index = 0; byte_index < count; byte_index++) {
+            std::size_t j = (byte_index*element_size) + i;
             dest[j] = src[offset+byte_index];
 
         }
@@ -186,6 +190,8 @@ void swapBytesFloat(float& value) {
     std::memcpy(&intValue, &value, sizeof(float));
     uint8_t* bytes = reinterpret_cast<uint8_t*>(&intValue);
 
+    // 3 2 1 0
+    // 0 1 2 3
     std::swap(bytes[0], bytes[3]);
     std::swap(bytes[1], bytes[2]);
 
@@ -212,7 +218,7 @@ void fromBufToFloatArr(unsigned char* data, uLong dataSize, std::vector<float>& 
 
     for (uLong i = 0; i < numFloats; ++i) {
         std::memcpy(&floatArray[i], &data[i * sizeof(float)], sizeof(float));
-        if (SYS_LITTLE_ENDIAN) {
+        if (!SYS_LITTLE_ENDIAN) {
             swapBytesFloat(floatArray[i]);
         }
     }
@@ -354,11 +360,11 @@ void manualKerchunkRead(Aws::String bucketName,
         std::cout << std::endl;
 
         // TEMPORARY: compress decompression result, print in hex
-        std::vector<Bytef> compressRes = compressData(dresult->buffer,  dresult->size, 4);
+        // std::vector<Bytef> compressRes = compressData(dresult->buffer,  dresult->size, 4);
 
-        // cast to unsig char* for undoShuffle
+        // cast to unsig char* for undoShuffle; dresult->size in bytes 
         unsigned char* buf = reinterpret_cast<unsigned char*>(dresult->buffer);
-        for (uLong i = 0; i < dresult->size; i++) {
+        for (uLong i = 0; i < (dresult->size); i++) {
             unsigned char byteElement = static_cast<unsigned char>(buf[i]);
         }
         
@@ -368,7 +374,8 @@ void manualKerchunkRead(Aws::String bucketName,
 
         // numcodecs shuffle
         unsigned char* dest = new unsigned char[dresult->size];
-        undoShuffle(buf, dest, 4, dresult->size);
+        std::size_t len = static_cast<std::size_t>(dresult->size);
+        undoShuffle(buf, dest, 4, len);
 
         for (int i = startIndex; i <= endIndex; i++) {
             // Convert each character to its binary representation
@@ -390,7 +397,7 @@ void manualKerchunkRead(Aws::String bucketName,
         std::cout << "Print sample float values..." << std::endl;
         std::cout << std::endl;
         for (uLong i = 0; i <= 100; ++i) {
-            std::cout << floatArr[i] << " ";
+            std::cout << std::setprecision(10) << floatArr[i] << " ";
         }
         std::cout << std::endl;
 
