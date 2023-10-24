@@ -243,7 +243,7 @@ struct layer_t {
     ~layer_t() {}
     // alias
     using layer_p = std::shared_ptr<layer_t>;
-    using data_t = std::variant< std::vector<layer_p>, float >;
+    using data_t = std::variant< std::vector<layer_p>, std::vector<float> >;
     // var to hold data_t
     data_t data;
     layer_t(layer_t const&)=default;
@@ -256,13 +256,24 @@ struct layer_t {
 #ifndef GEN_NESTED_VEC
 #define GEN_NESTED_VEC
 
-layer_t::data_t generate( unsigned int x ) {
+/**
+ * @brief generate a dynamic float vector with proper dimensions based on chunk request
+ * 
+ * @param num_dim, dim_sizes (each elem corresponds to size of layer its index is at)
+ * @return layer_t::data_t 
+ * @note should take dim_sizes and apply per layer e.g.
+ * 0: 24 1: 100 2:100
+ * layer 0: 24 pointers
+ * layer 1: per each 1 point of 0, make arr of 100 pts
+ * layer 2: float vector w 100 entries
+ */
+layer_t::data_t generate( unsigned int num_dim, std::vector<int>& dim_sizes) {
     // size 0 --> place base value
-    if (x==0) {
-        return float(0);
+    if (num_dim==0) {
+        return std::vector<float>{0.0f};
     }
     // recursively gen with shared ptr
-    auto ptr = std::make_shared<layer_t>(generate(x-1));
+    auto ptr = std::make_shared<layer_t>(generate(num_dim-1, dim_sizes));
     // vec of shared ptrs to more layer_t objects
     auto vec = std::vector<layer_t::layer_p>{ptr};
     // contains vec with shared ptrs
@@ -274,20 +285,20 @@ layer_t::data_t generate( unsigned int x ) {
 #endif
 
 // temp: overloaded print for nesting
-void print( layer_t::data_t const& in ) {
+void print(layer_t::data_t const& in) {
     std::visit(
-        [](auto const& e)
-        {
-            if constexpr( std::is_same< decltype(e), float const& >{} ) {
+        [](auto const& e) {
+            if constexpr (std::is_same<decltype(e), float const&>::value) {
                 std::cout << e << "\n";
+            } else if constexpr (std::is_same<decltype(e), std::vector<float> const&>::value) {
+                for (const auto& element : e) {
+                    std::cout << "elem in float vec: " << element << "\n";
+                }
             } else {
-                for (const auto& x:e) {
-                    if (!x)
-                    {
+                for (const auto& x : e) {
+                    if (!x) {
                         std::cout << "null\n";
-                    }
-                    else
-                    {
+                    } else {
                         std::cout << "nest\n";
                         print(x->data);
                         std::cout << "unnest\n";
@@ -296,6 +307,27 @@ void print( layer_t::data_t const& in ) {
             }
         },
         in
+    );
+}
+
+
+// test: using print access style, push a float value in
+// problem: this goes depth down first, meaning it goes down in one way only
+// need to find a way to traverse side to side in array
+void pushFloatIn( layer_t::data_t& struct_in, float val_in) {
+    std::visit(
+        [&](auto& e) {
+            if constexpr (std::is_same_v<decltype(e), std::vector<float>&>) {
+                // push back float val to lowest level
+                e.push_back(val_in);
+            } else if constexpr (std::is_same_v<decltype(e), std::vector<layer_t::layer_p>&>) {
+                if (!e.empty()) {
+                    // recurse down 
+                    pushFloatIn(e[0]->data, val_in);
+                }
+            }
+        },
+        struct_in
     );
 }
 
@@ -313,9 +345,11 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
     // row order
     int num_dims= dimensions.size();
     if (order == 'C') {
-        // dynamically generate the size of vectors 
+        // dynamically generate the size of vectors + print
         auto multi_arr = generate(num_dims);
-        // demo nested access
+        print(multi_arr);
+        // try pushing in + print
+        pushFloatIn(multi_arr, 3.14);
         print(multi_arr);
         // TODO: iterating on levels and populating based on dims
         
