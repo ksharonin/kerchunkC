@@ -5,9 +5,11 @@
  */
 
 #include <iostream>
+#include <string.h>
 #include <bit>
 #include <cstdint>
 #include <vector>
+#include <variant>
 #include <cstring>
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
@@ -233,6 +235,102 @@ void fromBufToFloatArr(unsigned char* data, uLong dataSize, std::vector<float>& 
 
 #endif
 
+// bring down for reference
+struct layer_t;
+
+struct layer_t {
+    // destructor
+    ~layer_t() {}
+    // alias
+    using layer_p = std::shared_ptr<layer_t>;
+    using data_t = std::variant< std::vector<layer_p>, float >;
+    // var to hold data_t
+    data_t data;
+    layer_t(layer_t const&)=default;
+    // init with data
+    layer_t(data_t in):data(std::move(in)) {}
+    // default constructor
+    layer_t()=default;
+};
+
+#ifndef GEN_NESTED_VEC
+#define GEN_NESTED_VEC
+
+layer_t::data_t generate( unsigned int x ) {
+    // size 0 --> place base value
+    if (x==0) {
+        return float(0);
+    }
+    // recursively gen with shared ptr
+    auto ptr = std::make_shared<layer_t>(generate(x-1));
+    // vec of shared ptrs to more layer_t objects
+    auto vec = std::vector<layer_t::layer_p>{ptr};
+    // contains vec with shared ptrs
+    layer_t::data_t r(vec);
+
+    return r;
+}
+
+#endif
+
+// temp: overloaded print for nesting
+void print( layer_t::data_t const& in ) {
+    std::visit(
+        [](auto const& e)
+        {
+            if constexpr( std::is_same< decltype(e), float const& >{} ) {
+                std::cout << e << "\n";
+            } else {
+                for (const auto& x:e) {
+                    if (!x)
+                    {
+                        std::cout << "null\n";
+                    }
+                    else
+                    {
+                        std::cout << "nest\n";
+                        print(x->data);
+                        std::cout << "unnest\n";
+                    }
+                }
+            }
+        },
+        in
+    );
+}
+
+#ifndef RECONSTRUCT_ARRAY_ONE_CHUNK
+#define RECONSTRUCT_ARRAY_ONE_CHUNK
+
+/**
+ * @brief given an output single dim array, use metadata to generate a properly re-dimensioned arr
+ * @param data, dimensions, order 
+ *              (ex [24, 100, 100]) (C for row major vs F for col major)
+ * @return void
+ * @note https://stackoverflow.com/questions/47130773/how-to-generate-arbitrarily-nested-vectors-in-c
+ */
+void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions, char order) {
+    // row order
+    int num_dims= dimensions.size();
+    if (order == 'C') {
+        // dynamically generate the size of vectors 
+        auto multi_arr = generate(num_dims);
+        // demo nested access
+        print(multi_arr);
+        // TODO: iterating on levels and populating based on dims
+        
+    }
+    else { 
+        // assumes 'F' was placed instead
+        std::cerr << "Column order reading not implemented, force program halt" << std::endl;
+        throw std::runtime_error("");
+    }
+
+
+}
+
+#endif
+
 #ifndef MANUAL_KREAD
 #define MANUAL_KREAD
 
@@ -350,6 +448,19 @@ void manualKerchunkRead(Aws::String bucketName,
             std::cout << std::setprecision(10) << floatArr[i] << " ";
         }
         std::cout << std::endl;
+
+        // try: reconstruct chunk to proper dimensions 
+
+        // TODO: eventually parse dims + order out from JSON metadata
+
+        std::cout << std::endl;
+        std::cout << "try generating nested arr" << std::endl;
+        std::vector<int> dims;
+        dims.push_back(24);
+        dims.push_back(100);
+        dims.push_back(100);
+        char order = 'C';
+        reconArrSingleChunk(floatArr, dims, order);
 
         delete[] dresult->buffer;
         delete[] dest;
