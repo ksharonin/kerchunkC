@@ -16,7 +16,8 @@
 #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
 #include <zlib.h>
-// using namespace std;
+#include "mult_dim_form.h"
+
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 const bool SYS_LITTLE_ENDIAN = true;
@@ -235,168 +236,6 @@ void fromBufToFloatArr(unsigned char* data, uLong dataSize, std::vector<float>& 
 
 #endif
 
-// bring down for reference
-struct layer_t;
-
-struct layer_t {
-    // destructor
-    ~layer_t() {}
-    // alias
-    using layer_p = std::shared_ptr<layer_t>;
-    using data_t = std::variant< std::vector<layer_p>, std::vector<float> >;
-    // var to hold data_t
-    data_t data;
-    layer_t(layer_t const&)=default;
-    // init with data
-    layer_t(data_t in):data(std::move(in)) {}
-    // default constructor
-    layer_t()=default;
-};
-
-#ifndef GEN_NESTED_VEC
-#define GEN_NESTED_VEC
-
-/**
- * @brief generate a dynamic float vector with proper dimensions based on chunk request
- * 
- * @param num_dim, dim_sizes (each elem corresponds to size of layer its index is at)
- * @return layer_t::data_t 
- * @note should take dim_sizes and apply per layer e.g.
- * 0: 24 1: 100 2:100
- * layer 0: 24 pointers
- * layer 1: per each 1 point of 0, make arr of 100 pts
- * layer 2: float vector w 100 entries
- */
-layer_t::data_t generate( unsigned int num_dim,  unsigned int num_floats, std::vector<int>& dim_sizes) {
-    // size 0 --> place base value
-    if (num_dim==0) {
-        // need to do newline operation due to args not assessing
-        // return std::vector<float>{(num_floats, 0.0f)};
-        std::vector<float> allocatedBottomLayer(num_floats, 0.0f);
-        return allocatedBottomLayer;
-    }
-
-    std::vector<layer_t::layer_p> layer_vec;
-
-    for (int i = 0; i < dim_sizes[0]; ++i) {
-        std::vector<int> sub_dim_sizes(dim_sizes.begin() + 1, dim_sizes.end());
-        layer_vec.push_back(std::make_shared<layer_t>(generate(num_dim - 1, num_floats, sub_dim_sizes)));
-    }
-
-    return layer_vec;
-}
-
-#endif
-
-void print(layer_t::data_t const& in, int level = 0) {
-    std::visit(
-        [level](auto const& e) {
-            if constexpr (std::is_same<decltype(e), float const&>::value) {
-                std::cout << "Level " << level << ": Float array: " << e << "\n";
-            } else if constexpr (std::is_same<decltype(e), std::vector<float> const&>::value) {
-                for (const auto& element : e) {
-                    std::cout << "Level " << level << ": Element in float vec: " << element << "\n";
-                }
-            } else {
-                for (const auto& x : e) {
-                    if (!x) {
-                        std::cout << "Level " << level << ": null\n";
-                    } else {
-                        std::cout << "Level " << level << ": Nested (pointer)\n";
-                        print(x->data, level + 1);  // Increase the level for nested pointers
-                        std::cout << "Level " << level << ": Unnested (pointer)\n";
-                    }
-                }
-            }
-        },
-        in
-    );
-}
-
-#ifndef PUSH_FLOAT_IN
-#define PUSH_FLOAT_IN
-
-/**
- * @brief given dimensions, traverse down and push item into index of vector
- * @param struct_in, indices, val
- * @return void
- * e.g. (24, 100, 100) dims, given index [0, 1, 23]--> place elemt at index
- * @note assumes index position exists in the vector, otherwise depend on program to throw err
- */
-void pushFloatIn(layer_t::data_t& struct_in, 
-                std::vector<int>& indices, 
-                unsigned int targetIndex,
-                float val) {
-    if (indices.size() >= 0) {
-        std::visit(
-            [targetIndex, &indices, val](auto& e) {
-                if constexpr (std::is_same<decltype(e), std::vector<layer_t::layer_p>&>::value) {
-                    unsigned int temp = indices[0];
-                    indices.erase(indices.begin());
-                    pushFloatIn(e[temp]->data, indices, targetIndex, val);
-                } else if constexpr (std::is_same<decltype(e), std::vector<float>&>::value) {
-                    e[targetIndex] = val;
-                }
-            },
-            struct_in
-        );
-    }
-    
-}
-#endif
-
-#ifndef RECONSTRUCT_ARRAY_ONE_CHUNK
-#define RECONSTRUCT_ARRAY_ONE_CHUNK
-
-/**
- * @brief given an output single dim array, use metadata to generate a properly re-dimensioned arr
- * @param data, dimensions, order 
- *              (ex [24, 100, 100]) (C for row major vs F for col major)
- * @return void
- * @note https://stackoverflow.com/questions/47130773/how-to-generate-arbitrarily-nested-vectors-in-c
- */
-void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions, char order) {
-    // row order
-    int num_dims= dimensions.size();
-    if (order == 'C') {
-        // dynamically generate the size of vectors + print
-        // for proper gen; use last as number of actual elems in the vector
-
-        std::cout << std::endl;
-        std::cout << "generate nested arr + print flattened struct" << std::endl;
-        std::vector<int> org_dims = dimensions;
-        unsigned int num_floats = dimensions.back();
-        dimensions.pop_back();
-        num_dims = num_dims - 1;
-        auto multi_arr = generate(num_dims, num_floats, dimensions);
-        print(multi_arr, 0);
-
-        // try pushing in + print - sample dims == 2,3,5
-        // TODO: because of the format need to improve arg passing
-        std::cout << std::endl;
-        std::cout << "demo added float in new position" << std::endl;
-        std::cout << std::endl;
-
-        std::vector<int> indexs = {0, 1, 3}; // ex a case in loop iteration
-        unsigned int lowest_indx = indexs.back();
-        indexs.pop_back();
-        pushFloatIn(multi_arr, indexs, lowest_indx, 3.14);
-        print(multi_arr, 0);
-
-        // TODO: build loop iteration from dims
-        
-    }
-    else { 
-        // assumes 'F' was placed instead
-        std::cerr << "Column order reading not implemented, force program halt" << std::endl;
-        throw std::runtime_error("");
-    }
-
-
-}
-
-#endif
-
 #ifndef MANUAL_KREAD
 #define MANUAL_KREAD
 
@@ -517,11 +356,7 @@ void manualKerchunkRead(Aws::String bucketName,
 
         // try: reconstruct chunk to proper dimensions 
         // TODO: eventually parse dims + order out from JSON metadata
-
-        std::vector<int> dims;
-        dims.push_back(2);
-        dims.push_back(3);
-        dims.push_back(5);
+        std::vector<int> dims = {2,3,5};
         char order = 'C';
         reconArrSingleChunk(floatArr, dims, order);
 
