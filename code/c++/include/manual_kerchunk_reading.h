@@ -267,41 +267,44 @@ struct layer_t {
  * layer 1: per each 1 point of 0, make arr of 100 pts
  * layer 2: float vector w 100 entries
  */
-layer_t::data_t generate( unsigned int num_dim, std::vector<int>& dim_sizes) {
+layer_t::data_t generate( unsigned int num_dim,  unsigned int num_floats, std::vector<int>& dim_sizes) {
     // size 0 --> place base value
     if (num_dim==0) {
-        return std::vector<float>{0.0f};
+        // need to do newline operation due to args not assessing
+        // return std::vector<float>{(num_floats, 0.0f)};
+        std::vector<float> allocatedBottomLayer(num_floats, 0.0f);
+        return allocatedBottomLayer;
     }
-    // recursively gen with shared ptr
-    auto ptr = std::make_shared<layer_t>(generate(num_dim-1, dim_sizes));
-    // vec of shared ptrs to more layer_t objects
-    auto vec = std::vector<layer_t::layer_p>{ptr};
-    // contains vec with shared ptrs
-    layer_t::data_t r(vec);
 
-    return r;
+    std::vector<layer_t::layer_p> layer_vec;
+
+    for (int i = 0; i < dim_sizes[0]; ++i) {
+        std::vector<int> sub_dim_sizes(dim_sizes.begin() + 1, dim_sizes.end());
+        layer_vec.push_back(std::make_shared<layer_t>(generate(num_dim - 1, num_floats, sub_dim_sizes)));
+    }
+
+    return layer_vec;
 }
 
 #endif
 
-// temp: overloaded print for nesting
-void print(layer_t::data_t const& in) {
+void print(layer_t::data_t const& in, int level = 0) {
     std::visit(
-        [](auto const& e) {
+        [level](auto const& e) {
             if constexpr (std::is_same<decltype(e), float const&>::value) {
-                std::cout << e << "\n";
+                std::cout << "Level " << level << ": Float array: " << e << "\n";
             } else if constexpr (std::is_same<decltype(e), std::vector<float> const&>::value) {
                 for (const auto& element : e) {
-                    std::cout << "elem in float vec: " << element << "\n";
+                    std::cout << "Level " << level << ": Element in float vec: " << element << "\n";
                 }
             } else {
                 for (const auto& x : e) {
                     if (!x) {
-                        std::cout << "null\n";
+                        std::cout << "Level " << level << ": null\n";
                     } else {
-                        std::cout << "nest\n";
-                        print(x->data);
-                        std::cout << "unnest\n";
+                        std::cout << "Level " << level << ": Nested (pointer)\n";
+                        print(x->data, level + 1);  // Increase the level for nested pointers
+                        std::cout << "Level " << level << ": Unnested (pointer)\n";
                     }
                 }
             }
@@ -310,26 +313,37 @@ void print(layer_t::data_t const& in) {
     );
 }
 
+#ifndef PUSH_FLOAT_IN
+#define PUSH_FLOAT_IN
 
-// test: using print access style, push a float value in
-// problem: this goes depth down first, meaning it goes down in one way only
-// need to find a way to traverse side to side in array
-void pushFloatIn( layer_t::data_t& struct_in, float val_in) {
-    std::visit(
-        [&](auto& e) {
-            if constexpr (std::is_same_v<decltype(e), std::vector<float>&>) {
-                // push back float val to lowest level
-                e.push_back(val_in);
-            } else if constexpr (std::is_same_v<decltype(e), std::vector<layer_t::layer_p>&>) {
-                if (!e.empty()) {
-                    // recurse down 
-                    pushFloatIn(e[0]->data, val_in);
+/**
+ * @brief given dimensions, traverse down and push item into index of vector
+ * @param struct_in, indices, val
+ * @return void
+ * e.g. (24, 100, 100) dims, given index [0, 1, 23]--> place elemt at index
+ * @note assumes index position exists in the vector, otherwise depend on program to throw err
+ */
+void pushFloatIn(layer_t::data_t& struct_in, 
+                std::vector<int>& indices, 
+                unsigned int targetIndex,
+                float val) {
+    if (indices.size() >= 0) {
+        std::visit(
+            [targetIndex, &indices, val](auto& e) {
+                if constexpr (std::is_same<decltype(e), std::vector<layer_t::layer_p>&>::value) {
+                    unsigned int temp = indices[0];
+                    indices.erase(indices.begin());
+                    pushFloatIn(e[temp]->data, indices, targetIndex, val);
+                } else if constexpr (std::is_same<decltype(e), std::vector<float>&>::value) {
+                    e[targetIndex] = val;
                 }
-            }
-        },
-        struct_in
-    );
+            },
+            struct_in
+        );
+    }
+    
 }
+#endif
 
 #ifndef RECONSTRUCT_ARRAY_ONE_CHUNK
 #define RECONSTRUCT_ARRAY_ONE_CHUNK
@@ -346,12 +360,30 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
     int num_dims= dimensions.size();
     if (order == 'C') {
         // dynamically generate the size of vectors + print
-        auto multi_arr = generate(num_dims);
-        print(multi_arr);
-        // try pushing in + print
-        pushFloatIn(multi_arr, 3.14);
-        print(multi_arr);
-        // TODO: iterating on levels and populating based on dims
+        // for proper gen; use last as number of actual elems in the vector
+
+        std::cout << std::endl;
+        std::cout << "generate nested arr + print flattened struct" << std::endl;
+        std::vector<int> org_dims = dimensions;
+        unsigned int num_floats = dimensions.back();
+        dimensions.pop_back();
+        num_dims = num_dims - 1;
+        auto multi_arr = generate(num_dims, num_floats, dimensions);
+        print(multi_arr, 0);
+
+        // try pushing in + print - sample dims == 2,3,5
+        // TODO: because of the format need to improve arg passing
+        std::cout << std::endl;
+        std::cout << "demo added float in new position" << std::endl;
+        std::cout << std::endl;
+
+        std::vector<int> indexs = {0, 1, 3}; // ex a case in loop iteration
+        unsigned int lowest_indx = indexs.back();
+        indexs.pop_back();
+        pushFloatIn(multi_arr, indexs, lowest_indx, 3.14);
+        print(multi_arr, 0);
+
+        // TODO: build loop iteration from dims
         
     }
     else { 
@@ -484,15 +516,12 @@ void manualKerchunkRead(Aws::String bucketName,
         std::cout << std::endl;
 
         // try: reconstruct chunk to proper dimensions 
-
         // TODO: eventually parse dims + order out from JSON metadata
 
-        std::cout << std::endl;
-        std::cout << "try generating nested arr" << std::endl;
         std::vector<int> dims;
-        dims.push_back(24);
-        dims.push_back(100);
-        dims.push_back(100);
+        dims.push_back(2);
+        dims.push_back(3);
+        dims.push_back(5);
         char order = 'C';
         reconArrSingleChunk(floatArr, dims, order);
 
