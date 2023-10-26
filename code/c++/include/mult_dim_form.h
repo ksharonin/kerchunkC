@@ -131,6 +131,52 @@ void pushFloatIn(layer_t::data_t& struct_in,
 }
 #endif
 
+/**
+ * @brief apply arbitary amount of for loops according to dim size
+ * @param in vector to use function on
+ * @param out vector of layer_t which contains mult-dim struct
+ * @param dimensions actual dims excluding final level e.g. if actual dims {24, 100, 100} -> get {24, 100}
+ * @param num_dims full number of dimensions e.g. dimensions.size() + 1 (due to popped final_level)
+ * @param final_level final level sizing e.g. if actual dims {24, 100, 100} -> get 
+ * @param func apply this function to the item in list
+ * @param cur_indices
+ */
+ layer_t::data_t&  recurseFor(std::vector<float>& in,
+                layer_t::data_t& out,
+                std::vector<int>& dimensions, 
+                unsigned int num_dims,
+                unsigned int final_level,
+                void (*func) (layer_t::data_t&, 
+                std::vector<int>&, 
+                unsigned int,
+                float),
+                ) {
+    // apply num_dims of for loops 
+    if (num_dims == 1) {
+        // use final level and actually apply func
+        for () {
+            std::vector<int> indices = {};
+            func(out, );
+        }
+        return out;
+    } else {
+        // grab first dim of interest 
+
+        // decrement num_dims
+
+        // pop dimensions front and/or crop
+
+        // call with set of indices; row major order
+        
+        for () {
+            recurseFor(in, out, dimensions, num_dims, final_level, func(), );
+        }
+
+    }
+
+
+}
+
 #ifndef RECONSTRUCT_ARRAY_ONE_CHUNK
 #define RECONSTRUCT_ARRAY_ONE_CHUNK
 
@@ -144,6 +190,8 @@ void pushFloatIn(layer_t::data_t& struct_in,
 void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions, char order) {
     // row order
     int num_dims= dimensions.size();
+    // track progress in vector data; add each inner for loop iter
+    int master_indx = 0;
     if (order == 'C') {
         // dynamically generate the size of vectors + print
         // for proper gen; use last as number of actual elems in the vector
@@ -170,6 +218,7 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
         print(multi_arr, 0);
 
         // TODO: build loop iteration from dims
+
         
     }
     else { 
