@@ -110,7 +110,7 @@ void print(layer_t::data_t const& in, int level = 0) {
  * @note targetIndex is separated out from indices for recursion purposes
  */
 void pushFloatIn(layer_t::data_t& struct_in, 
-                std::vector<int>& indices, 
+                std::vector<int> indices, 
                 unsigned int targetIndex,
                 float val) {
     if (indices.size() >= 0) {
@@ -141,37 +141,51 @@ void pushFloatIn(layer_t::data_t& struct_in,
  * @param func apply this function to the item in list
  * @param cur_indices
  */
- layer_t::data_t&  recurseFor(std::vector<float>& in,
+ layer_t::data_t& recurseFor(
+                std::vector<float>& in,
                 layer_t::data_t& out,
                 std::vector<int>& dimensions, 
                 unsigned int num_dims,
+                unsigned int along,
                 unsigned int final_level,
                 void (*func) (layer_t::data_t&, 
-                std::vector<int>&, 
+                std::vector<int>, 
                 unsigned int,
                 float),
-                ) {
+                std::vector<int>& cur_indices,
+                unsigned int master_indx) {
     // apply num_dims of for loops 
     if (num_dims == 1) {
         // use final level and actually apply func
-        for () {
-            std::vector<int> indices = {};
-            func(out, );
+        for (unsigned int i = 0; i < final_level; i++) {
+            // just pass final level due to index separation
+            func(out, cur_indices, i, in[master_indx]);
+            master_indx++;
         }
         return out;
     } else {
         // grab first dim of interest 
+        int poppedVal = dimensions[along];
+        // dimensions.erase(dimensions.begin() + along);
+        num_dims--;
+        along++;
 
-        // decrement num_dims
-
-        // pop dimensions front and/or crop
+        std::vector<int> cur_indices_copy = cur_indices;
 
         // call with set of indices; row major order
-        
-        for () {
-            recurseFor(in, out, dimensions, num_dims, final_level, func(), );
+        for (unsigned int j = 0; j < poppedVal; j++) {
+            if (j != 0) {
+                // pop off previous
+                cur_indices_copy.pop_back();
+            }
+            // add in latest j
+            cur_indices_copy.push_back(j);
+            out = recurseFor(in, out, dimensions, num_dims, along, final_level, func, cur_indices_copy, master_indx);
         }
 
+        // dimensions.insert(dimensions.begin(), poppedVal);
+        
+        return out;
     }
 
 
@@ -217,8 +231,24 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
         pushFloatIn(multi_arr, indexs, lowest_indx, 3.14);
         print(multi_arr, 0);
 
-        // TODO: build loop iteration from dims
+        std::cout << std::endl;
+        std::cout << "recurse stuff float values" << std::endl;
+        std::cout << std::endl;
 
+        // final step: stuff all floats into the multi arr
+        std::vector<int> indexes = {};
+        auto out = recurseFor(
+                data,
+                multi_arr,
+                dimensions, 
+                num_dims + 1,
+                0,
+                num_floats,
+                pushFloatIn,
+                indexes,
+                0);
+        
+        print(out, 0);
         
     }
     else { 
