@@ -356,7 +356,7 @@ void manualKerchunkRead(Aws::String bucketName,
 
         // try: reconstruct chunk to proper dimensions 
         // TODO: eventually parse dims + order out from JSON metadata
-        std::vector<int> dims = {2,3,5};
+        std::vector<int> dims = {24,100,100};  // {2,3,5};
         char order = 'C';
         reconArrSingleChunk(floatArr, dims, order);
 

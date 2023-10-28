@@ -141,7 +141,7 @@ void pushFloatIn(layer_t::data_t& struct_in,
  * @param func apply this function to the item in list
  * @param cur_indices
  */
- layer_t::data_t& recurseFor(
+ std::pair<layer_t::data_t, unsigned int> recurseFor(
                 std::vector<float>& in,
                 layer_t::data_t& out,
                 std::vector<int>& dimensions, 
@@ -162,7 +162,7 @@ void pushFloatIn(layer_t::data_t& struct_in,
             func(out, cur_indices, i, in[master_indx]);
             master_indx++;
         }
-        return out;
+        return std::make_pair(out, master_indx);
     } else {
         // grab first dim of interest 
         int poppedVal = dimensions[along];
@@ -180,12 +180,14 @@ void pushFloatIn(layer_t::data_t& struct_in,
             }
             // add in latest j
             cur_indices_copy.push_back(j);
-            out = recurseFor(in, out, dimensions, num_dims, along, final_level, func, cur_indices_copy, master_indx);
+            std::pair<layer_t::data_t, unsigned int> riz = recurseFor(in, out, dimensions, num_dims, along, final_level, func, cur_indices_copy, master_indx);
+            out = riz.first;
+            master_indx = riz.second;
         }
 
         // dimensions.insert(dimensions.begin(), poppedVal);
         
-        return out;
+        return std::make_pair(out, master_indx);
     }
 
 
@@ -217,19 +219,19 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
         dimensions.pop_back();
         num_dims = num_dims - 1;
         auto multi_arr = generate(num_dims, num_floats, dimensions);
-        print(multi_arr, 0);
+        // print(multi_arr, 0);
 
-        // try pushing in + print - sample dims == 2,3,5
-        // TODO: because of the format need to improve arg passing
+
+        // ex a hardcoded push case in loop iteration
+        /*
         std::cout << std::endl;
         std::cout << "demo added float in new position" << std::endl;
         std::cout << std::endl;
-
-        std::vector<int> indexs = {0, 1, 3}; // ex a hardcoded case in loop iteration
+        std::vector<int> indexs = {0, 1, 3};
         unsigned int lowest_indx = indexs.back();
         indexs.pop_back();
         pushFloatIn(multi_arr, indexs, lowest_indx, 3.14);
-        print(multi_arr, 0);
+        print(multi_arr, 0); */
 
         std::cout << std::endl;
         std::cout << "recurse stuff float values" << std::endl;
@@ -237,7 +239,8 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
 
         // final step: stuff all floats into the multi arr
         std::vector<int> indexes = {};
-        auto out = recurseFor(
+        std::pair<layer_t::data_t, unsigned int> out = 
+                recurseFor(
                 data,
                 multi_arr,
                 dimensions, 
@@ -246,9 +249,12 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
                 num_floats,
                 pushFloatIn,
                 indexes,
-                0);
+                master_indx);
         
-        print(out, 0);
+        print(out.first, 0);
+        std::cout << std::endl;
+        std::cout << "final index" << std::endl;
+        std::cout << out.second << std::endl;
         
     }
     else { 
