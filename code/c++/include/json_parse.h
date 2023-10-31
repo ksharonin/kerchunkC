@@ -1,6 +1,7 @@
 /**
  * @file json_parse.h
  * @brief given json associated with netCDF, parse for byte-chunk reading metadata
+ * zarray parse ex: https://github.com/pydata/xarray/blob/main/xarray/backends/zarr.py
  * @version 0.1
  * 
  * @note JSON parsing hpp sourced from:
@@ -19,10 +20,12 @@
 using namespace std;
 using json = nlohmann::json;
 
-// Write a C++ program that takes as input a JSON file, variable name, 
-// and chunk ID that returns the corresponding array with the right dimensions.
-// zarray parse ex: https://github.com/pydata/xarray/blob/main/xarray/backends/zarr.py
-
+/**
+ * @brief 
+ * 
+ * @param path_to_json 
+ * @return void
+ */
 void testReadJsonFromFile(std::string path_to_json){
     std::ifstream jsonFile(path_to_json);
     if (!jsonFile.is_open()) {
@@ -35,8 +38,8 @@ void testReadJsonFromFile(std::string path_to_json){
         jsonFile >> jsonData;
         
         // hardcoded example 
-        // int start_byte = jsonData["refs"]["air_pressure_at_mean_sea_level/0.0.0"][1];
-        // std::cout << "start_byte of 0.0.0: " << start_byte << std::endl;
+        int start_byte = jsonData["refs"]["air_pressure_at_mean_sea_level/0.0.0"][1];
+        std::cout << "start_byte of 0.0.0: " << start_byte << std::endl;
 
         // list keys - version and refs expected
         for (auto it = jsonData.begin(); it != jsonData.end(); ++it) {
@@ -49,13 +52,17 @@ void testReadJsonFromFile(std::string path_to_json){
     }
 }
 
-
-void readJsonMeta(std::string path_to_json) {
+/**
+ * @brief given json path, extract universal metadata valid for all chunks
+ * 
+ * @param path_to_json 
+ * @return std::tuple< std::string, std::string, int, std::string, float, int, std::string, std::string, std::string, int> 
+ */
+std::tuple< std::string, std::string, int, std::string, float, int, std::string, std::string, std::string, int> readJsonMeta(std::string path_to_json) {
     // extract meta data universal for entire arr
     std::ifstream jsonFile(path_to_json);
     if (!jsonFile.is_open()) {
-        std::cerr << "Failed to open the JSON file." << std::endl;
-        return;
+        throw std::runtime_error("Failed to open the JSON file");
     }
 
     try {
@@ -64,55 +71,110 @@ void readJsonMeta(std::string path_to_json) {
         
         // access refs 
         if (jsonData.find("refs") != jsonData.end()) {
-            json refs = jsonData["refs"];
-            int index = 0;
 
-            // ex zarr
-            // {"chunks":[24,100,100],
-            // "compressor":{"id":"zlib","level":4},
-            // "dtype":"<f4","fill_value":9.969209968386869e+36,
-            // "filters":[{"elementsize":4,"id":"shuffle"}],
-            // "order":"C","shape":[744,721,1440],"zarr_format":2}')
+            // .../.ZARRAY 
+            auto it = jsonData["refs"].begin();
+            std::advance(it, 2);
+            std::string force_in = jsonData["refs"][it.key()];
+            json zarray = json::parse(force_in);
 
-            json zarray = refs[0];
+            // chunks
+            const nlohmann::json& chunks_arr = zarray["chunks"];
+            std::string chunks = chunks_arr.dump();
+            // compressor 
+            json compressor = json::parse((std::string) zarray["compressor"].dump());
+            std::string compressor_id = compressor["id"];
+            int level = compressor["level"];
+            // dtype
+            std::string dtype = zarray["dtype"];
+            // fill val
+            float fill_value = zarray["fill_value"];
+            // filters
+            json filters = json::parse((std::string) zarray["filters"][0].dump());
+            int elementsize = filters["elementsize"];
+            std::string filter_id = filters["id"];
+            // order 
+            std::string order = zarray["order"];
+            // shape 
+            const nlohmann::json& shape_arr = zarray["shape"];
+            std::string shape = shape_arr.dump();
+            // format
+            int zarr_format = zarray["zarr_format"]; 
+            
+            // .../.ZATTRS
+            std::advance(it, 1);
+            std::string force_inn = jsonData["refs"][it.key()];
+            json zattrs = json::parse(force_inn);
 
-            // ex zattrs
-            // {"_ARRAY_DIMENSIONS":["time0","lat","lon"],
-            // "least_significant_digit":2,"long_name":"Mean sea level pressure",
-            // "nameCDM":"Mean_sea_level_pressure_surface",
-            // "nameECMWF":"Mean sea level pressure","product_type":"analysis",
-            // "shortNameECMWF":"msl","standard_name":"air_pressure_at_mean_sea_level","units":"Pa"}')
-            json zattrs = refs[1];
+            // _ARRAY_DIMENSIONS - not returned for now
+            const nlohmann::json& arr_dims = zattrs["_ARRAY_DIMENSIONS"];
+            std::string array_dims = arr_dims.dump();
+
+            // other zattrs... exclude for now?
+
+            return  std::make_tuple(chunks, 
+                                    compressor_id, 
+                                    level,
+                                    dtype,
+                                    fill_value,
+                                    elementsize,
+                                    filter_id,
+                                    order,
+                                    shape,
+                                    zarr_format
+                                    );
 
         } else {
-            std::cerr << "The 'refs' object doesn't exist in the JSON." << std::endl;
+            throw std::runtime_error("critical failure; the 'refs' not found in assumed location.");
         }
 
     } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
+        throw std::runtime_error("Failed base metadata read");
     }
 
-    return;
+    throw std::runtime_error("Failed base metadata read");
+    
 }
 
 void readChunkMeta() {
+    // TODO
     // read chunk specific info
-
-
+    return;
 }
 
-void extractBucketAndKey(){
-    // TODO
-}
+std::vector<int> parseStrToVector(std::string &input) {
+    std::vector<int> dimensions;
+    std::stringstream ss(input);
 
-void extractCompressor(){
-    // TODO
-}
+    char delimiter;
+    int num;
 
-void extractFilters(){
-    // TODO
-}
+    // Check for the opening bracket '['.
+    if (ss >> delimiter && delimiter == '[') {
+        // Parse integers and store them in the vector.
+        while (ss >> num) {
+            dimensions.push_back(num);
 
-void extractChunkSize(){
-    // TODO
+            // Check for the delimiter ','.
+            if (ss >> delimiter && delimiter == ',') {
+                continue;
+            } else if (delimiter == ']') {
+                // If the closing bracket ']' is encountered, break the loop.
+                break;
+            } else {
+                // Invalid format in the input string.
+                std::cerr << "Invalid format in the input string." << std::endl;
+                // Return an empty vector to indicate an error.
+                return {};
+            }
+        }
+    } else {
+        // Invalid format in the input string.
+        std::cerr << "Invalid format in the input string." << std::endl;
+        // Return an empty vector to indicate an error.
+        return {};
+    }
+
+    return dimensions;
 }
