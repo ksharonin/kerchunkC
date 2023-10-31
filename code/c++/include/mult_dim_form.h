@@ -234,7 +234,7 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
         print(multi_arr, 0); */
 
         std::cout << std::endl;
-        std::cout << "recurse stuff float values" << std::endl;
+        std::cout << "recurse to stuff in float values" << std::endl;
         std::cout << std::endl;
 
         // final step: stuff all floats into the multi arr
@@ -251,7 +251,10 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
                 indexes,
                 master_indx);
         
-        print(out.first, 0);
+        std::cout << std::endl;
+        std::cout << "recurse done" << std::endl;
+
+        // print(out.first, 0);
         std::cout << std::endl;
         std::cout << "final index" << std::endl;
         std::cout << out.second << std::endl;

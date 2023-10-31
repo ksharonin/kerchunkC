@@ -257,7 +257,11 @@ void manualKerchunkRead(Aws::String bucketName,
                         unsigned int startByte, 
                         unsigned int numBytes, 
                         const char* decompressor,
-                        const char* filters) {
+                        const char* filters,
+                        std::vector<int> dimensions,
+                        char order,
+                        std::string dtype
+                        ) {
 
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket(bucketName);
@@ -342,23 +346,28 @@ void manualKerchunkRead(Aws::String bucketName,
         std::cout << std::endl;
 
         // numpy decode read - manual <f4 selected out
-        std::string dtype = "<f4";
+        // std::string dtype = "<f4";
         std::vector<float> floatArr;
-        fromBufToFloatArr(dest, dresult->size, floatArr);
-
-        std::cout << std::endl;
-        std::cout << "Print sample float values..." << std::endl;
-        std::cout << std::endl;
-        for (uLong i = 0; i <= 100; ++i) {
-            std::cout << std::setprecision(10) << floatArr[i] << " ";
+        if (dtype == "<f4") {
+            fromBufToFloatArr(dest, dresult->size, floatArr);
+        } 
+        else {
+            std::cout << "reading for this dtype not implemented" << std::endl;
+            throw std::runtime_error("");
         }
-        std::cout << std::endl;
+
+        // std::cout << std::endl;
+        // std::cout << "Print sample float values..." << std::endl;
+        // std::cout << std::endl;
+        // for (uLong i = 0; i <= 100; ++i) {
+        //     std::cout << std::setprecision(10) << floatArr[i] << " ";
+        // }
+        // std::cout << std::endl;
 
         // try: reconstruct chunk to proper dimensions 
-        // TODO: eventually parse dims + order out from JSON metadata
-        std::vector<int> dims = {24,100,100};  // {2,3,5};
-        char order = 'C';
-        reconArrSingleChunk(floatArr, dims, order);
+        // std::vector<int> dims = {24,100,100};  // {2,3,5};
+        // char order = 'C';
+        reconArrSingleChunk(floatArr, dimensions, order);
 
         delete[] dresult->buffer;
         delete[] dest;
@@ -378,7 +387,7 @@ void manualKerchunkRead(Aws::String bucketName,
  * @return void
  * @note must account for dtype reading e.g. dtype='<f4'
  * https://numpy.org/doc/stable/reference/generated/numpy.frombuffer.html
- */
+ * 
 void bufToArr(unsigned char* buf, std::string dtype) {
     // TODO
     if (dtype == "<f4") {
@@ -388,5 +397,6 @@ void bufToArr(unsigned char* buf, std::string dtype) {
         std::cout << "reading for this dtype not implemented" << std::endl;
     }
 }
+*/
 
 
