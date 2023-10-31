@@ -21,38 +21,6 @@ using namespace std;
 using json = nlohmann::json;
 
 /**
- * @brief 
- * 
- * @param path_to_json 
- * @return void
- */
-void testReadJsonFromFile(std::string path_to_json){
-    std::ifstream jsonFile(path_to_json);
-    if (!jsonFile.is_open()) {
-        std::cerr << "Failed to open the JSON file." << std::endl;
-        return;
-    }
-
-    try {
-        json jsonData;
-        jsonFile >> jsonData;
-        
-        // hardcoded example 
-        int start_byte = jsonData["refs"]["air_pressure_at_mean_sea_level/0.0.0"][1];
-        std::cout << "start_byte of 0.0.0: " << start_byte << std::endl;
-
-        // list keys - version and refs expected
-        for (auto it = jsonData.begin(); it != jsonData.end(); ++it) {
-            std::string key = it.key();
-            std::cout << "Key: " << key << std::endl;
-        }
-
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
-    }
-}
-
-/**
  * @brief given json path, extract universal metadata valid for all chunks
  * 
  * @param path_to_json 
@@ -130,51 +98,134 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
 
     } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
-        throw std::runtime_error("Failed base metadata read");
     }
 
     throw std::runtime_error("Failed base metadata read");
     
 }
 
-void readChunkMeta() {
-    // TODO
-    // read chunk specific info
-    return;
+std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, int chunk_index) {
+    std::ifstream jsonFile(path_to_json);
+    if (!jsonFile.is_open()) {
+        throw std::runtime_error("Failed to open the JSON file");
+    }
+
+    try {
+        json jsonData;
+        jsonFile >> jsonData;
+        
+        // access refs 
+        if (jsonData.find("refs") != jsonData.end()) {
+
+            auto it = jsonData["refs"].begin();
+            std::advance(it, 4 + chunk_index);
+            const nlohmann::json& chunk_arr = jsonData["refs"][it.key()];
+
+            if (chunk_arr.size() != 3) {
+                throw std::runtime_error("fatal: incorrect size for chunk meta, check read result.");
+            }
+
+            std::string s3Path= chunk_arr[0];
+            int startByte = chunk_arr[1];
+            int numBytes = chunk_arr[2];
+            //std::string chunk_meta = chunk_arr.dump();
+            
+            return std::make_tuple(s3Path, startByte, numBytes);
+
+        } else {
+            throw std::runtime_error("critical failure; the 'refs' not found in assumed location.");
+        }
+
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+    }
+
+    throw std::runtime_error("Failed chunk metadata read");
 }
 
-std::vector<int> parseStrToVector(std::string &input) {
+
+/**
+ * @brief convert str to vector assuming a bracket array representation
+ * 
+ * @param input 
+ * @return std::vector<int> 
+ */
+std::vector<int> parseStrToIntVector(std::string &input) {
     std::vector<int> dimensions;
     std::stringstream ss(input);
 
     char delimiter;
     int num;
 
-    // Check for the opening bracket '['.
     if (ss >> delimiter && delimiter == '[') {
-        // Parse integers and store them in the vector.
         while (ss >> num) {
             dimensions.push_back(num);
-
-            // Check for the delimiter ','.
             if (ss >> delimiter && delimiter == ',') {
                 continue;
             } else if (delimiter == ']') {
-                // If the closing bracket ']' is encountered, break the loop.
                 break;
             } else {
-                // Invalid format in the input string.
                 std::cerr << "Invalid format in the input string." << std::endl;
-                // Return an empty vector to indicate an error.
                 return {};
             }
         }
     } else {
-        // Invalid format in the input string.
         std::cerr << "Invalid format in the input string." << std::endl;
-        // Return an empty vector to indicate an error.
         return {};
     }
 
     return dimensions;
+}
+
+/**
+ * @brief starter test function to test json reading with nlohmann lib
+ * 
+ * @param path_to_json 
+ * @return void
+ */
+void _testReadJsonFromFile(std::string path_to_json){
+    std::ifstream jsonFile(path_to_json);
+    if (!jsonFile.is_open()) {
+        std::cerr << "Failed to open the JSON file." << std::endl;
+        return;
+    }
+
+    try {
+        json jsonData;
+        jsonFile >> jsonData;
+        
+        // hardcoded example 
+        int start_byte = jsonData["refs"]["air_pressure_at_mean_sea_level/0.0.0"][1];
+        std::cout << "start_byte of 0.0.0: " << start_byte << std::endl;
+
+        // list keys - version and refs expected
+        for (auto it = jsonData.begin(); it != jsonData.end(); ++it) {
+            std::string key = it.key();
+            std::cout << "Key: " << key << std::endl;
+        }
+
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+    }
+}
+
+
+void extractBucketAndKey(const std::string& s, std::string& bucketName, std::string& objectName) {
+    std::istringstream iss(s);
+    std::string token;
+
+    // Use a counter to distinguish between the bucket and key parts.
+    int partCounter = 0;
+
+    while (std::getline(iss, token, '/')) {
+        if (partCounter == 0) {
+            bucketName = token;
+        } else {
+            if (!objectName.empty()) {
+                objectName += "/";
+            }
+            objectName += token;
+        }
+        partCounter++;
+    }
 }

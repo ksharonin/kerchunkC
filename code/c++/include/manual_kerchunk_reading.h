@@ -38,7 +38,7 @@ struct DecompressionResult {
  * @param bucketName, objectName, bytesRange, client
  * @return void
  */
-Aws::IOStream& printByteStream(Aws::String bucketName, 
+Aws::IOStream& _printByteStream(Aws::String bucketName, 
                     Aws::String objectName, 
                     char bytesRange[],
                     Aws::S3::S3Client client) {

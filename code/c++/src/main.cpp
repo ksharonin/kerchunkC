@@ -23,7 +23,7 @@ int main() {
     Aws::InitAPI(options);
     {
         // chunk index / index set up?
-        int harcoded_chunk_index = 0;
+        int hardcoded_chunk_index = 2;
         // bool for full multidim read?
         bool full_read = false;
         // sample path
@@ -54,43 +54,41 @@ int main() {
                 shape,
                 zarr_format) = readJsonMeta(my_hardcoded_path);
                 
-        std::vector<int> chunks = parseStrToVector(chunks_interm);
+        std::vector<int> chunks = parseStrToIntVector(chunks_interm);
         std::cout << "JSON base metadata extraction success!" << std::endl;
-        std::cout << "ex: demo chunks read result" << std::endl;
-        std::cout << chunks_interm << std::endl;
+        // std::cout << "ex: demo chunks read result" << std::endl;
+        // std::cout << chunks_interm << std::endl;
 
-        // TODO
-        // fetch chunk specific data / set up
+        // chunk specific meta data
+        std::string s3Path;
+        int startByte;
+        int numBytes;
+        std::string bucketName_x;
+        std::string objectName_x;
+            
         if (full_read) {
             // for loop iteration on entire possible size
             std::cout << "full read not implemented, requires s3 source consistency sanity check" << std::endl;
             throw std::runtime_error("");
         } else {
             std::cout << std::endl;
-            std::cout << "Start chunk metadata extraction..." << std::endl;
-            // TODO  use chunk ID passed / hardcoded
-            readChunkMeta();
+            std::cout << "Start chunk metadata extraction for index: " << hardcoded_chunk_index << "..." << std::endl;
+
+            std::tie(s3Path, startByte, numBytes) = readChunkMeta(my_hardcoded_path, hardcoded_chunk_index);
+            extractBucketAndKey(s3Path, bucketName_x, objectName_x);
+
             std::cout << "JSON chunk metadata extraction success!" << std::endl;
+            // std::cout << "ex: demo s3 path result" << std::endl;
+            // std::cout << s3Path << std::endl;
         }
         
-        // TODO: REPLACE hardcoded settings using chunk parsing
-        const Aws::String bucketName = "era5-pds";
-        const Aws::String objectName = "2020/01/data/air_pressure_at_mean_sea_level.nc";
-        char bytesRange[] = "bytes=19226-19326";
-        int startByte = 19226;
-        int numBytes = 256358;
+        const Aws::String bucketName(bucketName_x.c_str());
+        const Aws::String objectName(objectName_x.c_str());
 
         Aws::Client::ClientConfiguration clientConfig;
         Aws::S3::S3Client client(clientConfig); 
         // clientConfig.region = "us-east-1";
 
-        // test byte stream with harcoded values
-        std::cout << std::endl;
-        std::cout << "Testing binary byte stream..." << std::endl;
-        std::cout << std::endl;
-        printByteStream(bucketName, objectName, bytesRange, client);
-
-        // try to decode/decompress into actual netCDF values
         std::cout << std::endl;
         std::cout << "Converting binary stream to decoded/decompressed chunks..." << std::endl;
         manualKerchunkRead(bucketName, 
