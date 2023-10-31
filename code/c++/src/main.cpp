@@ -23,7 +23,7 @@ int main() {
     Aws::InitAPI(options);
     {
         // chunk index / index set up?
-        int hardcoded_chunk_index = 2;
+        int hardcoded_chunk_index = 0;
         // bool for full multidim read?
         bool full_read = false;
         // sample path

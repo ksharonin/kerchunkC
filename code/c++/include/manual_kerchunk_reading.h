@@ -356,18 +356,13 @@ void manualKerchunkRead(Aws::String bucketName,
             throw std::runtime_error("");
         }
 
-        // std::cout << std::endl;
-        // std::cout << "Print sample float values..." << std::endl;
-        // std::cout << std::endl;
-        // for (uLong i = 0; i <= 100; ++i) {
-        //     std::cout << std::setprecision(10) << floatArr[i] << " ";
-        // }
-        // std::cout << std::endl;
-
         // try: reconstruct chunk to proper dimensions 
-        // std::vector<int> dims = {24,100,100};  // {2,3,5};
-        // char order = 'C';
-        reconArrSingleChunk(floatArr, dimensions, order);
+        layer_t::data_t out = reconArrSingleChunk(floatArr, dimensions, order);
+        std::vector<int> harcoded_test_visit = {0, 0, 0};
+        // print(out);
+        std::cout << "print at indices: " << harcoded_test_visit[0] << "," << harcoded_test_visit[1] << "," << harcoded_test_visit[2] << std::endl;
+        printAtIndices(out,harcoded_test_visit);
+        
 
         delete[] dresult->buffer;
         delete[] dest;

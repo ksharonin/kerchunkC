@@ -98,6 +98,50 @@ void print(layer_t::data_t const& in, int level = 0) {
     );
 }
 
+
+/**
+ * @brief print at given index vector eg. {0,2,3} -> properly traverses layer_t struct for float val
+ * 
+ * @param struct_in 
+ * @param indices 
+ */
+void printAtIndices(layer_t::data_t& struct_in, 
+                   std::vector<int> indices) {
+    std::visit(
+        [&indices](const auto& e) {
+            if constexpr (std::is_same<decltype(e), const std::vector<layer_t::layer_p>&>::value) {
+                if (!indices.empty()) {
+                    unsigned int temp = indices[0];
+                    indices.erase(indices.begin());
+
+                    if (temp >= 0 && temp < e.size()) {
+                        printAtIndices(e[temp]->data, indices);
+                    } else {
+                        std::cerr << "Index out of bounds." << std::endl;
+                    }
+                } else {
+                    std::cout << "Reached the specified level." << std::endl;
+                }
+            } else if constexpr (std::is_same<decltype(e), const std::vector<float>&>::value) {
+                if (!indices.empty()) {
+                    unsigned int temp = indices[0];
+                    indices.erase(indices.begin());
+
+                    if (temp >= 0 && temp < e.size()) {
+                        std::cout << "Value at index " << temp << ": "  << std::setprecision(10) << e[temp] << std::endl;
+                    } else {
+                        std::cerr << "Index out of bounds." << std::endl;
+                    }
+                } else {
+                    std::cout << "Reached the specified level." << std::endl;
+                }
+            }
+        },
+        struct_in
+    );
+}
+
+
 #ifndef PUSH_FLOAT_IN
 #define PUSH_FLOAT_IN
 
@@ -184,14 +228,13 @@ void pushFloatIn(layer_t::data_t& struct_in,
             out = riz.first;
             master_indx = riz.second;
         }
-
-        // dimensions.insert(dimensions.begin(), poppedVal);
         
         return std::make_pair(out, master_indx);
     }
 
 
 }
+
 
 #ifndef RECONSTRUCT_ARRAY_ONE_CHUNK
 #define RECONSTRUCT_ARRAY_ONE_CHUNK
@@ -200,10 +243,9 @@ void pushFloatIn(layer_t::data_t& struct_in,
  * @brief given an output single dim array, use metadata to generate a properly re-dimensioned arr
  * @param data, dimensions, order 
  *              (ex [24, 100, 100]) (C for row major vs F for col major)
- * @return void
  * @note https://stackoverflow.com/questions/47130773/how-to-generate-arbitrarily-nested-vectors-in-c
  */
-void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions, char order) {
+layer_t::data_t reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions, char order) {
     // row order
     int num_dims= dimensions.size();
     // track progress in vector data; add each inner for loop iter
@@ -219,19 +261,7 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
         dimensions.pop_back();
         num_dims = num_dims - 1;
         auto multi_arr = generate(num_dims, num_floats, dimensions);
-        // print(multi_arr, 0);
-
-
-        // ex a hardcoded push case in loop iteration
-        /*
-        std::cout << std::endl;
-        std::cout << "demo added float in new position" << std::endl;
-        std::cout << std::endl;
-        std::vector<int> indexs = {0, 1, 3};
-        unsigned int lowest_indx = indexs.back();
-        indexs.pop_back();
-        pushFloatIn(multi_arr, indexs, lowest_indx, 3.14);
-        print(multi_arr, 0); */
+        //print(multi_arr, 0);
 
         std::cout << std::endl;
         std::cout << "recurse to stuff in float values" << std::endl;
@@ -258,14 +288,16 @@ void reconArrSingleChunk(std::vector<float>& data, std::vector<int>& dimensions,
         std::cout << std::endl;
         std::cout << "final index" << std::endl;
         std::cout << out.second << std::endl;
+
+        return out.first;
         
     }
     else { 
         // assumes 'F' was placed instead
         std::cerr << "Column order reading not implemented, force program halt" << std::endl;
-        throw std::runtime_error("");
     }
 
+    throw std::runtime_error("Failed mult-dim conversion");
 
 }
 

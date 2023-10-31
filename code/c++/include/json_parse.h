@@ -104,6 +104,13 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
     
 }
 
+/**
+ * @brief use json path and chunk index to extract s3 path, start byte, and numbytes
+ * 
+ * @param path_to_json 
+ * @param chunk_index 
+ * @return std::tuple<std::string, int, int> 
+ */
 std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, int chunk_index) {
     std::ifstream jsonFile(path_to_json);
     if (!jsonFile.is_open()) {
@@ -209,14 +216,18 @@ void _testReadJsonFromFile(std::string path_to_json){
     }
 }
 
-
+/**
+ * @brief extract bucket and object from passed string s
+ * 
+ * @param s full path
+ * @param bucketName place result
+ * @param objectName place result
+ */
 void extractBucketAndKey(const std::string& s, std::string& bucketName, std::string& objectName) {
     std::istringstream iss(s);
     std::string token;
 
-    // Use a counter to distinguish between the bucket and key parts.
     int partCounter = 0;
-
     while (std::getline(iss, token, '/')) {
         if (partCounter == 0) {
             bucketName = token;
