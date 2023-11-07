@@ -11,24 +11,28 @@
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
-#include "manual_kerchunk_reading.h"
+#include "kerchunk_read.h"
 #include "json_parse.h"
+
+
 using namespace std;
+#define debugPrintON true
 
 #ifndef MAIN_RUN
-#define  MAIN_RUN
+#define MAIN_RUN
 
 int main() {
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
-        // chunk index / index set up?
-        int hardcoded_chunk_index = 0;
-        // bool for full multidim read?
-        bool full_read = false;
-        // sample path
-        std::string my_hardcoded_path = "/Users/katrinasharonin/Downloads/kerchunkC/code/jupyter/01_air_pressure_at_mean_sea_level.json";
+        // SEE CONFIG.H FOR INPUTS
+        int hardcoded_chunk_index = HARDCODED_CHUNK_INDEX;
+        std::vector<int> hardcoded_chunk_indices = HARDCODED_CHUNK_INDICES;
+        bool full_read = FULL_READ;
+        std::string my_hardcoded_path = HARDCODED_JSON_PATH;
+        std::vector<int> hardcoded_test_visit = HARDCODED_TEST_VISIT;
 
+        // BEGIN PROCESSING
         std::cout << std::endl;
         std::cout << "Start JSON base metadata extraction..." << std::endl;
 
@@ -56,8 +60,6 @@ int main() {
                 
         std::vector<int> chunks = parseStrToIntVector(chunks_interm);
         std::cout << "JSON base metadata extraction success!" << std::endl;
-        // std::cout << "ex: demo chunks read result" << std::endl;
-        // std::cout << chunks_interm << std::endl;
 
         // chunk specific meta data
         std::string s3Path;
@@ -67,9 +69,8 @@ int main() {
         std::string objectName_x;
             
         if (full_read) {
-            // for loop iteration on entire possible size
-            std::cout << "full read not implemented, requires s3 source consistency sanity check" << std::endl;
-            throw std::runtime_error("");
+            // read all chunks
+            throw std::runtime_error("full read not implemented, requires s3 source consistency sanity check");
         } else {
             std::cout << std::endl;
             std::cout << "Start chunk metadata extraction for index: " << hardcoded_chunk_index << "..." << std::endl;
@@ -91,7 +92,7 @@ int main() {
 
         std::cout << std::endl;
         std::cout << "Converting binary stream to decoded/decompressed chunks..." << std::endl;
-        manualKerchunkRead(bucketName, 
+        primaryKerchunkRead(bucketName, 
                             objectName, 
                             client, 
                             startByte, 
@@ -100,7 +101,8 @@ int main() {
                             filter_id.c_str(),
                             chunks,
                             order[0],
-                            dtype
+                            dtype,
+                            hardcoded_test_visit
                             );
 
         std::cout << std::endl;
