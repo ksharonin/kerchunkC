@@ -1,11 +1,11 @@
-# KerchunkC - Draft Extension of Kerchunk into C functionality
+# KerchunkC - Draft Extension of Kerchunk into C/C++ functionality
 
 ## Summary
 C++ extensions of driver to read virtual Zarr datasets described in JSON metadata format. Optimize s3 reading performance and mult-dimensional reconstruction of array datasets.
 
 See issue here: https://github.com/Unidata/netcdf-c/issues/2777
 
-## C++ Files
+## C++ Files (../code/c++)
 - Call chain overview:
     - `main.cpp` -> `json_parse.h` -> `kerchunk_read.h` -> `prin_helpers.h` -> `mult_dim_form.h` -> Finish
 
@@ -22,7 +22,7 @@ See issue here: https://github.com/Unidata/netcdf-c/issues/2777
 - `mult_dim_form.h`: given flat array, reconstruct the full dimensions as originally stored (bytes read as single flat dimensions from s3 stream)
 - `print_helpers.h`: debug printer functions, controlled by the constant `DEBUG_PRINT_ON` in `config.h`
 
-## Jupyter Files
+## Jupyter Files (../code/jupyter)
 - `make_kerchunk_refs.ipynb`: ipynb to generate JSON metadata from select s3 object
 - `range_req_dynamic.ipynb`: python edition of kerchunk process; use as verification and testing of c++ addition. Includes s3 byte stream, zlib decompression, unshuffle, dtype processing, and xarray comparison
 
