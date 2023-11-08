@@ -58,10 +58,10 @@ std::tuple< std::vector<int>,
         all_buckets.push_back(bucketName);
         all_objects.push_back(objectName);
 
-        // std::cout << "startByte of chunk index: " << i << " is: " << startByte << std::endl;
-        // std::cout << "numBytes of chunk index: " << i << " is: " << numBytes << std::endl;
-        // std::cout << "bucketName of: " << i << " is: " << bucketName_x << std::endl;
-        // std::cout << "objectName of: " << i << "is: " << objectName_x << std::endl;
+        std::cout << "startByte of chunk index: " << i << " is: " << startByte << std::endl;
+        std::cout << "numBytes of chunk index: " << i << " is: " << numBytes << std::endl;
+        std::cout << "bucketName of: " << i << " is: " << bucketName_x << std::endl;
+        std::cout << "objectName of: " << i << "is: " << objectName_x << std::endl;
     }
 
     return std::make_tuple(all_start_bytes, all_num_bytes, all_buckets, all_objects);
@@ -109,6 +109,24 @@ void  iterChunkRead(std::vector<int> hardcoded_chunk_indices,
         std::cout << std::endl;
         std::cout << "Done for index!" << std::endl;
 
+    }
+
+    if (TIMER_S3_READ_ON) {
+        std::cout << std::endl; 
+        std::cout << "VS. Single Accumlated Chunk Request" << std::endl; 
+        int sum_of_numbytes = std::accumulate(all_num_bytes.begin(), all_num_bytes.end(), 0);
+        primaryKerchunkRead(all_buckets[0], 
+                        all_objects[0], 
+                        client, 
+                        all_start_bytes[0], 
+                        sum_of_numbytes, 
+                        compressor_id.c_str(),
+                        filter_id.c_str(),
+                        chunks,
+                        order[0],
+                        dtype,
+                        hardcoded_test_visit
+                        );
     }
 
 }

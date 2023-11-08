@@ -15,9 +15,7 @@
 #include "json_parse.h"
 #include "iter_chunk.h"
 
-
 using namespace std;
-#define debugPrintON true
 
 #ifndef MAIN_RUN
 #define MAIN_RUN
@@ -78,7 +76,7 @@ int main() {
         Aws::Client::ClientConfiguration clientConfig;
         Aws::S3::S3Client client(clientConfig); 
         if (CLIENT_REGION_ON) {
-             std::cout << "AWS Client region configured..." << std::endl; 
+            std::cout << "AWS Client region configured..." << std::endl; 
             clientConfig.region = CLIENT_REGION;
         }
 

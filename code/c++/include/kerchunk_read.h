@@ -218,8 +218,24 @@ void primaryKerchunkRead(Aws::String bucketName,
     std::string end = std::to_string(startByte+numBytes);
     std::string result = "bytes="+start+"-"+end;
     const char* bytesRange = result.c_str();
-    request.WithRange(bytesRange);
-    auto getObjectOutcome = client.GetObject(request);
+    Aws::S3::Model::GetObjectOutcome getObjectOutcome;
+
+    if (TIMER_S3_READ_ON) {
+        auto start = std::chrono::system_clock::now();
+        request.WithRange(bytesRange);
+        getObjectOutcome = client.GetObject(request);
+        auto end = std::chrono::system_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end-start;
+        std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+    
+        std::cout << "finished computation at " << std::ctime(&end_time)
+                << "elapsed time: " << elapsed_seconds.count() << "s"
+                << std::endl;
+
+    } else {
+        request.WithRange(bytesRange);
+        getObjectOutcome = client.GetObject(request);
+    }
 
     if (getObjectOutcome.IsSuccess()) {
 
