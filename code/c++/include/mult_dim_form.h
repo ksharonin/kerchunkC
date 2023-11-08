@@ -285,9 +285,9 @@ layer_t::data_t reconArrSingleChunk(std::vector<float>& data, std::vector<int>& 
         std::cout << "recurse done" << std::endl;
 
         // print(out.first, 0);
-        std::cout << std::endl;
-        std::cout << "final index" << std::endl;
-        std::cout << out.second << std::endl;
+        // std::cout << std::endl;
+        // std::cout << "final index" << std::endl;
+        // std::cout << out.second << std::endl;
 
         return out.first;
         

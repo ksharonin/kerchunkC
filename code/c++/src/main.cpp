@@ -13,6 +13,7 @@
 #include <fstream>
 #include "kerchunk_read.h"
 #include "json_parse.h"
+#include "iter_chunk.h"
 
 
 using namespace std;
@@ -61,55 +62,45 @@ int main() {
         std::vector<int> chunks = parseStrToIntVector(chunks_interm);
         std::cout << "JSON base metadata extraction success!" << std::endl;
 
-        // chunk specific meta data
-        std::string s3Path;
-        int startByte;
-        int numBytes;
-        std::string bucketName_x;
-        std::string objectName_x;
-            
-        if (full_read) {
-            // read all chunks
-            throw std::runtime_error("full read not implemented, requires s3 source consistency sanity check");
-        } else {
-            std::cout << std::endl;
-            std::cout << "Start chunk metadata extraction for index: " << hardcoded_chunk_index << "..." << std::endl;
-
-            std::tie(s3Path, startByte, numBytes) = readChunkMeta(my_hardcoded_path, hardcoded_chunk_index);
-            extractBucketAndKey(s3Path, bucketName_x, objectName_x);
-
-            std::cout << "JSON chunk metadata extraction success!" << std::endl;
-            // std::cout << "ex: demo s3 path result" << std::endl;
-            // std::cout << s3Path << std::endl;
-        }
+        // extract chunk data for all passed chunk metadata
+        std::cout << std::endl;
+        std::cout << "Start JSON chunk index-based metadata extraction" << std::endl;
+        std::vector<int> all_start_bytes;
+        std::vector<int> all_num_bytes;
+        std::vector<const Aws::String> all_buckets;
+        std::vector<const Aws::String> all_objects;
+        std::tie(all_start_bytes,
+                 all_num_bytes,
+                 all_buckets,
+                 all_objects) = iterChunkMetaData(hardcoded_chunk_indices, my_hardcoded_path);
         
-        const Aws::String bucketName(bucketName_x.c_str());
-        const Aws::String objectName(objectName_x.c_str());
-
+        std::cout << "JSON chunk index metadata extraction success!" << std::endl; 
         Aws::Client::ClientConfiguration clientConfig;
         Aws::S3::S3Client client(clientConfig); 
-        // clientConfig.region = "us-east-1";
+        if (CLIENT_REGION_ON) {
+             std::cout << "AWS Client region configured..." << std::endl; 
+            clientConfig.region = CLIENT_REGION;
+        }
 
         std::cout << std::endl;
-        std::cout << "Converting binary stream to decoded/decompressed chunks..." << std::endl;
-        primaryKerchunkRead(bucketName, 
-                            objectName, 
-                            client, 
-                            startByte, 
-                            numBytes, 
-                            compressor_id.c_str(),
-                            filter_id.c_str(),
-                            chunks,
-                            order[0],
-                            dtype,
-                            hardcoded_test_visit
-                            );
-
-        std::cout << std::endl;
-        std::cout << "Done!" << std::endl;
+        std::cout << "BEGIN CHUNK READING FOR "<< hardcoded_chunk_indices.size() << " CHUNKS" << std::endl; 
+        iterChunkRead(hardcoded_chunk_indices, 
+                    all_start_bytes, 
+                    all_num_bytes, 
+                    all_buckets, 
+                    all_objects, 
+                    client, 
+                    compressor_id, 
+                    filter_id, 
+                    chunks, 
+                    order, 
+                    dtype, 
+                    hardcoded_test_visit);
 
     }
     Aws::ShutdownAPI(options);
+    std::cout << std::endl;
+    std::cout << "PROCESS COMPLETE." << std::endl;
 
     return 0;
 }

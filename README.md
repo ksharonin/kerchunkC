@@ -15,9 +15,10 @@ See issue here: https://github.com/Unidata/netcdf-c/issues/2777
 ### Include
 - `config.h`: inputs and settings for program
     - e.g. `HARDCODED_CHUNK_INDEX`, `HARDCODED_JSON_PATH`
-- `custom_structs.h`
-- `json_parse.h`:
+- `custom_structs.h`: hold custom structs shared across program (excluding `layer_t`)
+- `json_parse.h`: given json path, parse out metdata relevant for all chunks and for index specific chunks
 - `json.hpp`: nholmann json processing library
+- `iter_chunk.h`: coordinate metadata extraction and runs for multiple chunk indexes
 - `kerchunk_read.h`: given JSON metadata, read s3 stream and perform decompression, shuffling, etc until original array obtained. Calls on `mult_dim_form.h` to regain full dimensions
 - `mult_dim_form.h`: given flat array, reconstruct the full dimensions as originally stored (bytes read as single flat dimensions from s3 stream)
 - `print_helpers.h`: debug printer functions, controlled by the constant `DEBUG_PRINT_ON` in `config.h`
