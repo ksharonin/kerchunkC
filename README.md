@@ -5,6 +5,11 @@ C++ extensions of driver to read virtual Zarr datasets described in JSON metadat
 
 See issue here: https://github.com/Unidata/netcdf-c/issues/2777
 
+## Latest List of TODOs
+- Enable absolute indexing (abstract chunks such that the index for h5 is automatically mapped)
+- Enable local file reading (vs. just AWS remote bucket reading for stream of bytes)
+- H5Coro Integration (see SlideRule repository)
+
 ## C++ Files (../code/c++)
 - Call chain overview:
     - `main.cpp` -> `json_parse.h` -> `kerchunk_read.h` -> `prin_helpers.h` -> `mult_dim_form.h` -> Finish
