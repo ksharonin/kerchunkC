@@ -23,8 +23,12 @@
 #define HARDCODED_CHUNK_INDICES {0, 1, 2}
 // read ALL chunks as indicated by json
 #define FULL_READ false
+// flag for non s3 read, assume local file matches json meta
+#define USE_LOCAL true
 // path to metadata JSON
 #define HARDCODED_JSON_PATH "/Users/katrinasharonin/Downloads/kerchunkC/code/jupyter/01_air_pressure_at_mean_sea_level.json"
+// hardcoded byte stream source local to device
+#define HARCODED_LOCAL_NC_PATH "/Users/katrinasharonin/Downloads/2020_01_data_air_pressure_at_mean_sea_level.nc"
 // inside of a chunk e.g. size {24, 100, 100} visit at index {x,y,z}
 #define HARDCODED_TEST_VISIT {12, 33, 10}
 // verbose printing

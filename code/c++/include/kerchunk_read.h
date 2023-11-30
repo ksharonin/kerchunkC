@@ -18,6 +18,7 @@
 #include <zlib.h>
 #include "mult_dim_form.h"
 #include "print_helpers.h"
+#include "config.h"
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 const bool SYS_LITTLE_ENDIAN = true;
@@ -210,97 +211,127 @@ void primaryKerchunkRead(Aws::String bucketName,
                         std::vector<int> harcoded_test_visit
                         ) {
 
-    Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(objectName);
+    // local req flag - assume path stays constant with paired JSON
+    std::vector<unsigned char> retrievedBytes;
 
-    std::string start = std::to_string(startByte);
-    std::string end = std::to_string(startByte+numBytes);
-    std::string result = "bytes="+start+"-"+end;
-    const char* bytesRange = result.c_str();
-    Aws::S3::Model::GetObjectOutcome getObjectOutcome;
-
-    if (TIMER_S3_READ_ON) {
-        auto start = std::chrono::system_clock::now();
-        request.WithRange(bytesRange);
-        getObjectOutcome = client.GetObject(request);
-        auto end = std::chrono::system_clock::now();
-        std::chrono::duration<double> elapsed_seconds = end-start;
-        std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-    
-        std::cout << "finished computation at " << std::ctime(&end_time)
-                << "elapsed time: " << elapsed_seconds.count() << "s"
-                << std::endl;
-
-    } else {
-        request.WithRange(bytesRange);
-        getObjectOutcome = client.GetObject(request);
-    }
-
-    if (getObjectOutcome.IsSuccess()) {
-
-        // generate char vector 
-        Aws::IOStream& objectDataStream = getObjectOutcome.GetResultWithOwnership().GetBody();
+    if (USE_LOCAL) {
+        std::ifstream file(HARCODED_LOCAL_NC_PATH, std::ios::binary);
+        if (!file.is_open()) {
+            std::cerr << "Error opening the file!" << std::endl;
+            return;
+        }
+        // int start_byte = startByte; 
+        // int bytes_to_read = numBytes;
+        file.seekg(startByte, std::ios::beg);
         // std::vector<unsigned char> retrievedBytes;
         char buffer[1024];
-        while (!objectDataStream.eof()) {
-            objectDataStream.read(buffer, sizeof(buffer));
-            size_t bytesRead = objectDataStream.gcount();
-            for (size_t i = 0; i < bytesRead; i++) {
+
+        int remainingBytes = static_cast<int>(numBytes);
+        while (remainingBytes > 0 && file.good()) {
+            int read_size = std::min(remainingBytes, 1024);
+            file.read(buffer, read_size);
+            int bytesRead = file.gcount();
+            if (bytesRead == 0) {
+                break;
+            }
+            for (int i = 0; i < bytesRead; ++i) {
                 retrievedBytes.push_back(static_cast<unsigned char>(buffer[i]));
             }
+            remainingBytes -= bytesRead;
         }
-
-        std::vector<unsigned char> outputData;
+        file.close(); 
         
-        // pass retrievedBytes to zlib decompressor
-        Bytef* compressedData = reinterpret_cast<Bytef*>(retrievedBytes.data());
-        uLong compressedSize = static_cast<uLong>(retrievedBytes.size());
-        uLong initDestSize = static_cast<uLong>(retrievedBytes.size() * 2); // this can be dynamically resized inside
-
-        // zlib decompress - size may change based on read
-        DecompressionResult* dresult = decompressZlib(compressedData, compressedSize, initDestSize);
-        assert(dresult->size != 0);
-        assert(dresult->buffer != nullptr);
-
-        _debugPrintAfterDecompression(0, 101, dresult);
-
-        // cast to unsig char* for undoShuffle; dresult->size in bytes 
-        unsigned char* buf = reinterpret_cast<unsigned char*>(dresult->buffer);
-        for (uLong i = 0; i < (dresult->size); i++) {
-            unsigned char byteElement = static_cast<unsigned char>(buf[i]);
-        }
-
-        // numcodecs shuffle
-        unsigned char* dest = new unsigned char[dresult->size];
-        std::size_t len = static_cast<std::size_t>(dresult->size);
-        undoShuffle(buf, dest, 4, len);
-
-        _debugPrintAfterUnshuffle(0, 101, dest);
-
-        // numpy decode read
-        std::vector<float> floatArr;
-        if (dtype == "<f4") {
-            fromBufToFloatArr(dest, dresult->size, floatArr);
-        } 
-        else {
-            std::cout << "reading for this dtype not implemented" << std::endl;
-            throw std::runtime_error("");
-        }
-
-        // try: reconstruct chunk to proper dimensions 
-        layer_t::data_t out = reconArrSingleChunk(floatArr, dimensions, order);
-        std::cout << "print at indices: " << harcoded_test_visit[0] << "," << harcoded_test_visit[1] << "," << harcoded_test_visit[2] << std::endl;
-        printAtIndices(out,harcoded_test_visit);
-        
-
-        delete[] dresult->buffer;
-        delete[] dest;
-        delete dresult;
-
     } else {
-        std::cerr << "Error: " << getObjectOutcome.GetError().GetExceptionName() << ": " << getObjectOutcome.GetError().GetMessage() << std::endl;
+        Aws::S3::Model::GetObjectRequest request;
+        request.SetBucket(bucketName);
+        request.SetKey(objectName);
+
+        std::string start = std::to_string(startByte);
+        std::string end = std::to_string(startByte+numBytes);
+        std::string result = "bytes="+start+"-"+end;
+        const char* bytesRange = result.c_str();
+        Aws::S3::Model::GetObjectOutcome getObjectOutcome;
+
+        if (TIMER_S3_READ_ON) {
+            auto start = std::chrono::system_clock::now();
+            request.WithRange(bytesRange);
+            getObjectOutcome = client.GetObject(request);
+            auto end = std::chrono::system_clock::now();
+            std::chrono::duration<double> elapsed_seconds = end-start;
+            std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+        
+            std::cout << "finished computation at " << std::ctime(&end_time)
+                    << "elapsed time: " << elapsed_seconds.count() << "s"
+                    << std::endl;
+
+        } else {
+            request.WithRange(bytesRange);
+            getObjectOutcome = client.GetObject(request);
+        }
+         if (getObjectOutcome.IsSuccess()) {
+            // generate char vector 
+            Aws::IOStream& objectDataStream = getObjectOutcome.GetResultWithOwnership().GetBody();
+            // std::vector<unsigned char> retrievedBytes;
+            char buffer[1024];
+            while (!objectDataStream.eof()) {
+                objectDataStream.read(buffer, sizeof(buffer));
+                size_t bytesRead = objectDataStream.gcount();
+                for (size_t i = 0; i < bytesRead; i++) {
+                    retrievedBytes.push_back(static_cast<unsigned char>(buffer[i]));
+                }
+            }
+        } else {
+            std::cerr << "Error: " << getObjectOutcome.GetError().GetExceptionName() << ": " << getObjectOutcome.GetError().GetMessage() << std::endl;
+        }
     }
+
+   
+    std::vector<unsigned char> outputData;
+    
+    // pass retrievedBytes to zlib decompressor
+    Bytef* compressedData = reinterpret_cast<Bytef*>(retrievedBytes.data());
+    uLong compressedSize = static_cast<uLong>(retrievedBytes.size());
+    uLong initDestSize = static_cast<uLong>(retrievedBytes.size() * 2); // this can be dynamically resized inside
+
+    // zlib decompress - size may change based on read
+    DecompressionResult* dresult = decompressZlib(compressedData, compressedSize, initDestSize);
+    assert(dresult->size != 0);
+    assert(dresult->buffer != nullptr);
+
+    _debugPrintAfterDecompression(0, 101, dresult);
+
+    // cast to unsig char* for undoShuffle; dresult->size in bytes 
+    unsigned char* buf = reinterpret_cast<unsigned char*>(dresult->buffer);
+    for (uLong i = 0; i < (dresult->size); i++) {
+        unsigned char byteElement = static_cast<unsigned char>(buf[i]);
+    }
+
+    // numcodecs shuffle
+    unsigned char* dest = new unsigned char[dresult->size];
+    std::size_t len = static_cast<std::size_t>(dresult->size);
+    undoShuffle(buf, dest, 4, len);
+
+    _debugPrintAfterUnshuffle(0, 101, dest);
+
+    // numpy decode read
+    std::vector<float> floatArr;
+    if (dtype == "<f4") {
+        fromBufToFloatArr(dest, dresult->size, floatArr);
+    } 
+    else {
+        std::cout << "reading for this dtype not implemented" << std::endl;
+        throw std::runtime_error("");
+    }
+
+    // try: reconstruct chunk to proper dimensions 
+    layer_t::data_t out = reconArrSingleChunk(floatArr, dimensions, order);
+    std::cout << "print at indices: " << harcoded_test_visit[0] << "," << harcoded_test_visit[1] << "," << harcoded_test_visit[2] << std::endl;
+    printAtIndices(out,harcoded_test_visit);
+    
+
+    delete[] dresult->buffer;
+    delete[] dest;
+    delete dresult;
 
 }
 #endif
