@@ -241,7 +241,7 @@ void primaryKerchunkRead(Aws::String bucketName,
 
         // generate char vector 
         Aws::IOStream& objectDataStream = getObjectOutcome.GetResultWithOwnership().GetBody();
-        std::vector<unsigned char> retrievedBytes;
+        // std::vector<unsigned char> retrievedBytes;
         char buffer[1024];
         while (!objectDataStream.eof()) {
             objectDataStream.read(buffer, sizeof(buffer));
