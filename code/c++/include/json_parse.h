@@ -49,18 +49,11 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
             // chunks
             const nlohmann::json& chunks_arr = zarray["chunks"];
             std::string chunks = chunks_arr.dump();
-            // compressor 
-            json compressor = json::parse((std::string) zarray["compressor"].dump());
-            std::string compressor_id = compressor["id"];
-            int level = compressor["level"];
+
             // dtype
             std::string dtype = zarray["dtype"];
             // fill val
             float fill_value = zarray["fill_value"];
-            // filters
-            json filters = json::parse((std::string) zarray["filters"][0].dump());
-            int elementsize = filters["elementsize"];
-            std::string filter_id = filters["id"];
             // order 
             std::string order = zarray["order"];
             // shape 
@@ -68,6 +61,26 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
             std::string shape = shape_arr.dump();
             // format
             int zarr_format = zarray["zarr_format"]; 
+
+            // filters 
+            // TODO: key issue is filter is changing the keys...
+            json filters = json::parse((std::string) zarray["filters"][0].dump());
+            if (filters.contains("elementsize") && filters.contains("id")) {
+                int elementsize = filters["elementsize"];
+                std::string filter_id = filters["id"];
+            }
+            else {
+                // TODO: revist based on Alexey's feedback; placement of zlib here is strange...
+                std::string compressor_id = filters["id"];
+                int level = filters["level"];
+            }
+
+            // TODO: revisit possible null value
+            // compressor 
+            json compressor = json::parse((std::string) zarray["compressor"].dump());
+            std::string compressor_id = compressor["id"];
+            int level = compressor["level"];
+            
             
             // .../.ZATTRS
             std::advance(it, 1);
