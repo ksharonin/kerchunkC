@@ -2,6 +2,8 @@
 
 import xarray as xr
 import fsspec
+import cftime
+from dask.distributed import Client, LocalCluster, progress
 
 HARDCODED_JSON_DIR = "/Users/katrinasharonin/Downloads/GOES_17_recreation/results/final/2023-006.json"
 
@@ -14,19 +16,23 @@ target = fsspec.filesystem("reference",
 # )
 dat = xr.open_zarr(target, consolidated=False)
 
-# Try extracting a time series for a random location
-dat
 # tseries = dat.isel(bandn=1, x=4000, y=7000, time=slice(50,100)).Rad
-tseries = dat.isel(bandn=1, x=0, y=1, time=slice(0,50)).Rad
+print("TSERIES ACCESS")
+tseries = dat.isel(bandn=0, x=900, y=8000, time=slice(0,10)).Rad
 tseries.values
+print(tseries.values)
 
-result = tseries.persist()
-progress(result)
+# cluster = LocalCluster()
+# client = Client(cluster)
+
+# result = tseries.persist()
+# progress(result)
+# result.compute()
 # ~70 sec to read 100 time steps
 
 # Try calculating a global mean
-globmean = dat.isel(t=slice(200, 300)).Rad.mean(["t"])
-rmean = globmean.persist()
-progress(rmean)
-
-# %time globmean = dat.Rad.mean(["t"])
+# globmean = dat.isel(t=slice(0, 6)).Rad.mean(["t"])
+globmean = dat.isel(time=slice(0, 6)).Rad.mean(["time"])
+print(globmean)
+# rmean = globmean.persist()
+# progress(rmean)
