@@ -318,6 +318,10 @@ void primaryKerchunkRead(Aws::String bucketName,
     if (dtype == "<f4") {
         fromBufToFloatArr(dest, dresult->size, floatArr);
     } 
+    else if (dtype == "|i4") {
+        std::cout << "reading for this dtype not implemented" << std::endl;
+        throw std::runtime_error("");
+    }
     else {
         std::cout << "reading for this dtype not implemented" << std::endl;
         throw std::runtime_error("");

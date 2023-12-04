@@ -62,26 +62,47 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
             // format
             int zarr_format = zarray["zarr_format"]; 
 
+            // condition based extraction
+            int elementsize;
+            std::string filter_id;
+            std::string compressor_id;
+            int level;
+            double add_offset = 0;
+            double scale_factor = 0;
+
+            // TODO test new extraction vars -> expect non 0 for GOES17
+            if (zarray.contains("add_offset")) {
+                add_offset = zarray["add_offset"];
+            }
+            if (zarray.contains("scale_factor")) {
+                add_offset = zarray["scale_factor"];
+            }
+
             // filters 
             // TODO: key issue is filter is changing the keys...
+            // TODO: revist based on Alexey's feedback; placement of zlib here is strange...
             json filters = json::parse((std::string) zarray["filters"][0].dump());
             if (filters.contains("elementsize") && filters.contains("id")) {
-                int elementsize = filters["elementsize"];
-                std::string filter_id = filters["id"];
+                elementsize = filters["elementsize"];
+                filter_id = filters["id"];
             }
             else {
-                // TODO: revist based on Alexey's feedback; placement of zlib here is strange...
-                std::string compressor_id = filters["id"];
-                int level = filters["level"];
+                compressor_id = filters["id"];
+                level = filters["level"];
             }
 
             // TODO: revisit possible null value
+            // TODO: possible exception handling which swaps compressor and filter?
             // compressor 
             json compressor = json::parse((std::string) zarray["compressor"].dump());
-            std::string compressor_id = compressor["id"];
-            int level = compressor["level"];
-            
-            
+            if (zarray["compressor"].is_null()) {
+                std::string compressor_id = "null";
+                int level = 100000; // NULL;
+            }
+            else {
+                std::string compressor_id = compressor["id"];
+                int level = compressor["level"];
+            }
             // .../.ZATTRS
             std::advance(it, 1);
             std::string force_inn = jsonData["refs"][it.key()];
@@ -93,6 +114,7 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
 
             // other zattrs... exclude for now?
 
+            // TODO: need tor return all new generated vars
             return  std::make_tuple(chunks, 
                                     compressor_id, 
                                     level,
