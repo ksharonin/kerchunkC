@@ -36,7 +36,14 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
     try {
         json jsonData;
         jsonFile >> jsonData;
+
+        // TODO: CONDITION ON VARIABLES AND DATSET PATH
+        // if DATASET PATH not "" {-> set down to reference, then do var search}
+        // if VAR not "" {-> fetch zvar and condition on in, cannot assume "it" is reference start} 
         
+        // bring from refs down to known group
+        // TODO zgroup addition/recursor
+
         // access refs 
         if (jsonData.find("refs") != jsonData.end()) {
 
