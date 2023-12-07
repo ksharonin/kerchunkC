@@ -98,7 +98,10 @@ int main() {
                     chunks, 
                     order, 
                     dtype, 
-                    hardcoded_test_visit);
+                    hardcoded_test_visit,
+                    add_offset,
+                    scale_factor
+                    );
 
     }
     Aws::ShutdownAPI(options);

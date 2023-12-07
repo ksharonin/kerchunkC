@@ -82,8 +82,10 @@ void  iterChunkRead(std::vector<std::vector<int>> hardcoded_chunk_indices,
                     std::vector<int> chunks,
                     std::string order,
                     std::string dtype,
-                    std::vector<int> hardcoded_test_visit
-                       ) {
+                    std::vector<int> hardcoded_test_visit,
+                    double add_offset,
+                    double scale_factor
+                    ) {
     
     assert(hardcoded_chunk_indices.size() == all_start_bytes.size());
     assert(all_start_bytes.size() == all_num_bytes.size());
@@ -110,7 +112,9 @@ void  iterChunkRead(std::vector<std::vector<int>> hardcoded_chunk_indices,
                             chunks,
                             order[0],
                             dtype,
-                            hardcoded_test_visit
+                            hardcoded_test_visit,
+                            add_offset,
+                            scale_factor
                             );
 
         std::cout << std::endl;
@@ -132,7 +136,9 @@ void  iterChunkRead(std::vector<std::vector<int>> hardcoded_chunk_indices,
                         chunks,
                         order[0],
                         dtype,
-                        hardcoded_test_visit
+                        hardcoded_test_visit,
+                        add_offset,
+                        scale_factor
                         );
     }
 

@@ -27,6 +27,28 @@ const bool SYS_LITTLE_ENDIAN = false;
 #endif
 
 /**
+ * @brief apply known scale and factor to 
+ * 
+ * @tparam T, data , scale_factor , add_offset 
+ * @return std::vector<T> 
+ * 
+ * @note "The attributes scale_factor and add_offset are of the type intended for the unpacked data."
+* p.39 of https://www.goes-r.gov/users/docs/PUG-main-vol1.pdf 
+ */
+template<typename T>
+std::vector<T> scaleAndOffset(const std::vector<T>& data, 
+                            double scale_factor, 
+                            double add_offset) {
+    static_assert(std::is_arithmetic<T>::value, "Type T must be numeric");
+    std::vector<T> scaledData;
+    for (const T& value : data) {
+        T scaledValue = static_cast<T>((static_cast<double>(value) * scale_factor) + add_offset);
+        scaledData.push_back(scaledValue);
+    }
+    return scaledData;
+}
+
+/**
  * @brief zlib decompression of byte stream
  * @param 
  * @return DecompressionResult*
@@ -262,14 +284,16 @@ void primaryKerchunkRead(Aws::String bucketName,
                         std::vector<int> dimensions,
                         char order,
                         std::string dtype,
-                        std::vector<int> harcoded_test_visit
+                        std::vector<int> harcoded_test_visit,
+                        double add_offset,
+                        double scale_factor
                         ) {
 
     // local req flag - assume path stays constant with paired JSON
     std::vector<unsigned char> retrievedBytes;
 
     if (USE_LOCAL) {
-        std::ifstream file(HARCODED_LOCAL_NC_PATH, std::ios::binary);
+        std::ifstream file("/" + std::string(objectName.c_str()), std::ios::binary);
         if (!file.is_open()) {
             std::cerr << "Error opening the file!" << std::endl;
             return;
@@ -373,6 +397,7 @@ void primaryKerchunkRead(Aws::String bucketName,
     if (dtype == "<f4") {
         std::vector<float> floatArr;
         fromBufToFloatArr_LILf4(dest, dresult->size, floatArr);
+        floatArr = scaleAndOffset(floatArr, scale_factor, add_offset);
         out = reconArrSingleChunk(floatArr, dimensions, order);
         if (PRINT_WHOLE_BUFFER) {
             std::cout << "complete fetched buffer result : \n" << std::endl;
@@ -385,6 +410,7 @@ void primaryKerchunkRead(Aws::String bucketName,
     else if (dtype == "<i2") {
         std::vector<int16_t> intArr;
         fromBufToIntArr_LILI2(dest, dresult->size, intArr);
+        intArr = scaleAndOffset(intArr, scale_factor, add_offset);
 
         // TODO accomodate single chunk construction for diff types
         // out = reconArrSingleChunk(intArr, dimensions, order);
