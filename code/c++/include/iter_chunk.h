@@ -85,8 +85,10 @@ void  iterChunkRead(std::vector<std::vector<int>> hardcoded_chunk_indices,
                     std::vector<int> hardcoded_test_visit
                        ) {
     
-    // should correspond w indices
-    assert(hardcoded_chunk_indices.size() == all_start_bytes.size() == all_num_bytes.size() == all_buckets.size() == all_objects.size());
+    assert(hardcoded_chunk_indices.size() == all_start_bytes.size());
+    assert(all_start_bytes.size() == all_num_bytes.size());
+    assert(all_num_bytes.size() == all_buckets.size());
+    assert(all_buckets.size() == all_objects.size());
     
     // dispatch KerchunkRead with corresonding metadata
     for (int i = 0; i < hardcoded_chunk_indices.size(); i++) {

@@ -45,6 +45,22 @@ std::vector<std::string> splitString(const std::string& s, char delimiter) {
     return tokens;
 }
 
+/**
+ * @brief convert int vector to a dim based parse for the chunk input
+ * 
+ * @param chunk_index 
+ * @return std::string 
+ */
+std::string convertToDotSeparatedString(const std::vector<int>& chunk_index) {
+    std::ostringstream oss;
+    for (size_t i = 0; i < chunk_index.size(); ++i) {
+        oss << chunk_index[i];
+        if (i < chunk_index.size() - 1) {
+            oss << ".";
+        }
+    }
+    return oss.str();
+}
 
 /**
  * @brief given json path, extract universal metadata valid for all chunks
@@ -237,32 +253,19 @@ std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, std::v
         // access refs 
         if (jsonData.find("refs") != jsonData.end()) {
 
-            // TODO: integrate dataset path + var name to set up correct spot for iteration
-            // need to check if +4 iteration sets it up right
-
-            // instantiate, MUST UPDATE!
-            auto it = jsonData["refs"].begin();
-            const nlohmann::json& chunk_arr = jsonData;
+            std::string convert_dot = convertToDotSeparatedString(chunk_index);
+            nlohmann::json& chunk_arr = jsonData;
 
             // CASE 1: NO DATASET PATH -> VAR MUST MATCH 
             if (strlen(HARDCODED_DATASET_NAME)==0) {
                 // Allow for a default "" which will take first known, not recommended
                 if (strlen(HARDCODED_VARIABLE)== 0) {
-                    std::cout << "WARNING: no variable provided, assuming first .zarray is variable to use" << std::endl;
-                    auto it = jsonData["refs"].begin();
-                    std::advance(it, 4 + chunk_index);
-                    const nlohmann::json& chunk_arr = jsonData["refs"][it.key()];
+                    throw std::runtime_error("Cannot use empty HARCDOED_VARIABLE, please specify var");
                 } 
                 else {
-                    // TODO: START HERE FOR IT ITERATOR ADOPTION
-                    // NEED TO FIX CHUNK INPUT! IT IS NOT A SINGLE INDEX BUT COLLECTION TO FORM FINAL 
-                    // NEED TO KNOW DIMENSIONS TO PROPERLY FORM
-                    
                     try {
-                        // TODO: skip to zarray zone onwards 
-                        auto it = jsonData["refs"][std::string(HARDCODED_VARIABLE) + "/.zarray"];
-                        std::advance(it, 4 + chunk_index);
-                        const nlohmann::json& chunk_arr = jsonData["refs"][it.key()];
+
+                        chunk_arr = jsonData["refs"][std::string(HARDCODED_VARIABLE) + "/" + convert_dot];
                     }
                     catch (const std::exception& e) {
                         std::cout << "Exception caught in json_parse, var search failed with exception: " << e.what() << std::endl;
@@ -283,7 +286,6 @@ std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, std::v
                 hardcoded_data_path.erase(hardcoded_data_path.begin());
                 std::vector<std::string> terms = splitString(hardcoded_data_path, '/');
 
-                // std::string key = "";
                 jsonData = jsonData["refs"];
 
                 std::string key = std::accumulate(std::next(terms.begin()), terms.end(),
@@ -293,12 +295,12 @@ std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, std::v
                                       });
 
                 // now apply final zarr fetch on the location
-                force_in = jsonData[key + "/" + HARDCODED_VARIABLE + "/.zarray"];
-                zarray = json::parse(force_in);
+                chunk_arr = jsonData[key + "/" + HARDCODED_VARIABLE + "/" + convert_dot];
 
             }
 
             // assume chunk_arr properly set up
+            // nlohmann::json& chunk_arr_ref = chunk_arr;
 
             if (chunk_arr.size() != 3) {
                 throw std::runtime_error("fatal: incorrect size for chunk meta, check read result.");
