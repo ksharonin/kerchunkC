@@ -83,8 +83,8 @@ void  iterChunkRead(std::vector<std::vector<int>> hardcoded_chunk_indices,
                     std::string order,
                     std::string dtype,
                     std::vector<int> hardcoded_test_visit,
-                    double add_offset,
-                    double scale_factor
+                    float add_offset,
+                    float scale_factor
                     ) {
     
     assert(hardcoded_chunk_indices.size() == all_start_bytes.size());

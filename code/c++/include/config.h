@@ -54,9 +54,9 @@
 // print at indices, assuming layer_T make it done
 #define PRINT_AT_TEST_VISIT false
 // print entire fetched buffer
-#define PRINT_WHOLE_BUFFER true
+#define PRINT_WHOLE_BUFFER false
 // verbose printing
-#define DEBUG_PRINT_ON false
+#define DEBUG_PRINT_ON true
 // timers
 #define TIMER_S3_READ_ON true
 // s3 settings

@@ -76,6 +76,17 @@ void _debugGetByteS3Stream(Aws::String bucketName,
 
 #endif
 
+#ifndef PRINT_INTARR_FINAL
+#define PRINT_INTARR_FINAL
+
+void _debugPrintIntArr(std::vector<int16_t> input) {
+    for (const auto& element : input) {
+        std::cout << element << " ";
+    }
+    std::cout << std::endl;
+}
+
+#endif
 
 #ifndef PRINT_AFTER_DECOMP
 #define PRINT_AFTER_DECOMP

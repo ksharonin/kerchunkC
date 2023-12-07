@@ -27,7 +27,7 @@ int main() {
         // SEE CONFIG.H FOR INPUTS
         int hardcoded_chunk_index = HARDCODED_CHUNK_INDEX;
         std::vector<std::vector<int>> hardcoded_chunk_indices = HARDCODED_CHUNK_INDICES;
-        bool full_read = FULL_READ;
+        // bool full_read = FULL_READ;
         std::string my_hardcoded_path = HARDCODED_JSON_PATH;
         std::vector<int> hardcoded_test_visit = HARDCODED_TEST_VISIT;
 
@@ -45,8 +45,8 @@ int main() {
         std::string order;
         std::string shape;
         int zarr_format;
-        double add_offset;
-        double scale_factor;
+        float add_offset;
+        float scale_factor;
 
         std::tie(chunks_interm, 
                 compressor_id, 

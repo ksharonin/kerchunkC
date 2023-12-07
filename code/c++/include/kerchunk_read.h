@@ -36,13 +36,13 @@ const bool SYS_LITTLE_ENDIAN = false;
 * p.39 of https://www.goes-r.gov/users/docs/PUG-main-vol1.pdf 
  */
 template<typename T>
-std::vector<T> scaleAndOffset(const std::vector<T>& data, 
-                            double scale_factor, 
-                            double add_offset) {
+std::vector<float> scaleAndOffset(const std::vector<T>& data, 
+                            float scale_factor, 
+                            float add_offset) {
     static_assert(std::is_arithmetic<T>::value, "Type T must be numeric");
-    std::vector<T> scaledData;
+    std::vector<float> scaledData;
     for (const T& value : data) {
-        T scaledValue = static_cast<T>((static_cast<double>(value) * scale_factor) + add_offset);
+        float scaledValue = static_cast<float>((static_cast<float>(value) * scale_factor) + add_offset);
         scaledData.push_back(scaledValue);
     }
     return scaledData;
@@ -83,9 +83,7 @@ DecompressionResult* decompressZlib(Bytef* compressedData,
     result = inflate(&stream, Z_NO_FLUSH);
 
     if (result == Z_DATA_ERROR) {
-        result = inflateEnd(&stream);
-        result = inflateInit2(&stream, -MAX_WBITS);
-        result = inflate(&stream, Z_NO_FLUSH);
+        throw std::runtime_error("fatal: Z_DATA_ERROR; make sure the json meta data and file path align");
     }
 
     while (result == Z_BUF_ERROR || result != Z_STREAM_END) {
@@ -285,8 +283,8 @@ void primaryKerchunkRead(Aws::String bucketName,
                         char order,
                         std::string dtype,
                         std::vector<int> harcoded_test_visit,
-                        double add_offset,
-                        double scale_factor
+                        float add_offset,
+                        float scale_factor
                         ) {
 
     // local req flag - assume path stays constant with paired JSON
@@ -384,12 +382,23 @@ void primaryKerchunkRead(Aws::String bucketName,
         unsigned char byteElement = static_cast<unsigned char>(buf[i]);
     }
 
-    // numcodecs shuffle
+    // prep for numcodecs shuffle
     unsigned char* dest = new unsigned char[dresult->size];
     std::size_t len = static_cast<std::size_t>(dresult->size);
-    undoShuffle(buf, dest, 4, len);
 
-    _debugPrintAfterUnshuffle(0, 101, dest);
+    // apply corresponding filters
+    std::string shuffle_type = "shuffle";
+    std::string zlib_type = "zlib";
+    if (filters == shuffle_type) {
+        undoShuffle(buf, dest, 4, len);
+        _debugPrintAfterUnshuffle(0, 101, dest);
+    } else {
+        if (filters != zlib_type) {
+            throw std::runtime_error("Fatal: Unknown filter encountered, inspect in kerchunk_read.h");
+        }
+        // copy over into dest - assumes no other but zlib applied
+        std::memcpy(dest, buf, dresult->size);
+    }
 
     // numpy decode read
     layer_t::data_t out;
@@ -409,16 +418,21 @@ void primaryKerchunkRead(Aws::String bucketName,
     } 
     else if (dtype == "<i2") {
         std::vector<int16_t> intArr;
+        std::vector<float> final_output;
         fromBufToIntArr_LILI2(dest, dresult->size, intArr);
-        intArr = scaleAndOffset(intArr, scale_factor, add_offset);
+
+        // check non scale/offset type
+        _debugPrintIntArr(intArr);
+
+        final_output = scaleAndOffset(intArr, scale_factor, add_offset);
 
         // TODO accomodate single chunk construction for diff types
         // out = reconArrSingleChunk(intArr, dimensions, order);
         
         if (PRINT_WHOLE_BUFFER) {
             std::cout << "complete fetched buffer result : \n" << std::endl;
-            for (const auto& element : intArr) {
-                std::cout <<element << " ";
+            for (const auto& element : final_output) {
+                std::cout << static_cast<float>(element) << " ";
             }
             std::cout << std::endl;
         }

@@ -169,8 +169,8 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
             std::string filter_id;
             std::string compressor_id;
             int level;
-            double add_offset = 0;
-            double scale_factor = 1;
+            float add_offset = 0;
+            float scale_factor = 1;
 
             // TODO test new extraction vars -> expect non 0 for GOES17
             if (zattrs.contains("add_offset")) {
@@ -189,6 +189,8 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
             else {
                 compressor_id = filters["id"];
                 level = filters["level"];
+                // include for future conditioning
+                filter_id = filters["id"];
             }
 
             // for now assume the compressor field cannot be a net null; either in filter or here
