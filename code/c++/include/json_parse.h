@@ -53,7 +53,7 @@ std::vector<std::string> splitString(const std::string& s, char delimiter) {
  * @return std::tuple< std::string, std::string, int, 
  * std::string, float, int, std::string, std::string, std::string, int> 
  */
-std::tuple< std::string, std::string, int, std::string, float, int, std::string, std::string, std::string, int> readJsonMeta(std::string path_to_json) {
+std::tuple< std::string, std::string, int, std::string, float, int, std::string, std::string, std::string, int, double, double> readJsonMeta(std::string path_to_json) {
     // extract meta data universal for entire arr
     std::ifstream jsonFile(path_to_json);
     if (!jsonFile.is_open()) {
@@ -69,7 +69,9 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
             // .../.ZARRAY 
             auto it = jsonData["refs"].begin();
             std::string force_in;
+            std::string force_inn;
             json zarray;
+            json zattrs;
 
             // CASE 1: NO DATASET PATH -> VAR MUST MATCH 
             if (strlen(HARDCODED_DATASET_NAME)==0) {
@@ -80,18 +82,22 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
                     std::advance(it, 2);
                     force_in = jsonData["refs"][it.key()];
                     zarray = json::parse(force_in);
+                    std::advance(it, 1);
+                    force_inn = jsonData["refs"][it.key()];
+                    zattrs = json::parse(force_inn);
                 } 
                 else {
                     // search for var and apply
-                    std::string zarr_search_term = std::string(HARDCODED_VARIABLE) + "/.zarray"; 
+                    // std::string zarr_search_term = std::string(HARDCODED_VARIABLE) + "/.zarray"; 
                     try {
-                        force_in = jsonData["refs"][zarr_search_term];
+                        force_in = jsonData["refs"][std::string(HARDCODED_VARIABLE) + "/.zarray"];
                         zarray = json::parse(force_in);
+                        force_inn  = jsonData["refs"][std::string(HARDCODED_VARIABLE) + "/.zattrs"];
+                        zattrs = json::parse(force_inn);
                     }
                     catch (const std::exception& e) {
                         std::cout << "Exception caught in json_parse, var search failed with exception: " << e.what() << std::endl;
                         std::exit(EXIT_FAILURE);
-                        // throw std::runtime_error("");
                     }
 
                 }
@@ -120,6 +126,8 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
                 // now apply final zarr fetch on the location
                 force_in = jsonData[key + "/" + HARDCODED_VARIABLE + "/.zarray"];
                 zarray = json::parse(force_in);
+                force_inn = jsonData[key + "/" + HARDCODED_VARIABLE + "/.zattrs"];
+                zattrs = json::parse(force_inn);
 
             }
 
@@ -149,11 +157,11 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
             double scale_factor = 1;
 
             // TODO test new extraction vars -> expect non 0 for GOES17
-            if (zarray.contains("add_offset")) {
-                add_offset = zarray["add_offset"];
+            if (zattrs.contains("add_offset")) {
+                add_offset = zattrs["add_offset"];
             }
-            if (zarray.contains("scale_factor")) {
-                scale_factor = zarray["scale_factor"];
+            if (zattrs.contains("scale_factor")) {
+                scale_factor = zattrs["scale_factor"];
             }
 
             // filters 
@@ -170,7 +178,7 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
             // for now assume the compressor field cannot be a net null; either in filter or here
             json compressor = json::parse((std::string) zarray["compressor"].dump());
             if (zarray["compressor"].is_null()) {
-                assert(!filters.contains("elementsize") && !filters.contains("id"));   
+                assert(filters.contains("id") && filters.contains("level"));   
             }
             else {
                 std::string compressor_id = compressor["id"];
@@ -178,12 +186,6 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
             }
             
             // FOR NOW EXCLUDE ASSUMING NOT IMPORTANT FOR FUNCTIONALITY, TODO REVIST
-
-            // .../.ZATTRS
-            // std::advance(it, 1);
-            // std::string force_inn = jsonData["refs"][it.key()];
-            // json zattrs = json::parse(force_inn);
-
             // // _ARRAY_DIMENSIONS - not returned for now
             // const nlohmann::json& arr_dims = zattrs["_ARRAY_DIMENSIONS"];
             // std::string array_dims = arr_dims.dump();
@@ -198,7 +200,9 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
                                     filter_id,
                                     order,
                                     shape,
-                                    zarr_format
+                                    zarr_format,
+                                    add_offset,
+                                    scale_factor
                                     );
 
         } else {
@@ -233,9 +237,68 @@ std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, int ch
         // access refs 
         if (jsonData.find("refs") != jsonData.end()) {
 
+            // TODO: integrate dataset path + var name to set up correct spot for iteration
+            // need to check if +4 iteration sets it up right
+
+            // instantiate, MUST UPDATE!
             auto it = jsonData["refs"].begin();
-            std::advance(it, 4 + chunk_index);
-            const nlohmann::json& chunk_arr = jsonData["refs"][it.key()];
+            const nlohmann::json& chunk_arr = jsonData;
+
+            // CASE 1: NO DATASET PATH -> VAR MUST MATCH 
+            if (strlen(HARDCODED_DATASET_NAME)==0) {
+                // Allow for a default "" which will take first known, not recommended
+                if (strlen(HARDCODED_VARIABLE)== 0) {
+                    std::cout << "WARNING: no variable provided, assuming first .zarray is variable to use" << std::endl;
+                    auto it = jsonData["refs"].begin();
+                    std::advance(it, 4 + chunk_index);
+                    const nlohmann::json& chunk_arr = jsonData["refs"][it.key()];
+                } 
+                else {
+                    // TODO: START HERE FOR IT ITERATOR ADOPTION
+                    // NEED TO FIX CHUNK INPUT! IT IS NOT A SINGLE INDEX BUT COLLECTION TO FORM FINAL 
+                    // NEED TO KNOW DIMENSIONS TO PROPERLY FORM
+                    
+                    try {
+                        // TODO: skip to zarray zone onwards 
+                        auto it = jsonData["refs"][std::string(HARDCODED_VARIABLE) + "/.zarray"];
+                        std::advance(it, 4 + chunk_index);
+                        const nlohmann::json& chunk_arr = jsonData["refs"][it.key()];
+                    }
+                    catch (const std::exception& e) {
+                        std::cout << "Exception caught in json_parse, var search failed with exception: " << e.what() << std::endl;
+                        std::exit(EXIT_FAILURE);
+                    }
+
+                }
+            }
+
+            // CASE 2: ITERATE DOWN DATA SET PATH -> THEN ADD VAR FOR ZARR SEARCH
+            else {
+                if (std::string(HARDCODED_DATASET_NAME).front() != '/' || std::string(HARDCODED_DATASET_NAME).back() != '/' ) {
+                    throw std::runtime_error("HARDCODED_VARIABLE must be formatted with front and back slashes e.g.  /quality_assessment/gt2l/");
+                }
+
+                std::string hardcoded_data_path = std::string(HARDCODED_DATASET_NAME);
+                hardcoded_data_path.pop_back();
+                hardcoded_data_path.erase(hardcoded_data_path.begin());
+                std::vector<std::string> terms = splitString(hardcoded_data_path, '/');
+
+                // std::string key = "";
+                jsonData = jsonData["refs"];
+
+                std::string key = std::accumulate(std::next(terms.begin()), terms.end(),
+                                      terms.front(),
+                                      [](const std::string &a, const std::string &b) {
+                                          return a + "/" + b;
+                                      });
+
+                // now apply final zarr fetch on the location
+                force_in = jsonData[key + "/" + HARDCODED_VARIABLE + "/.zarray"];
+                zarray = json::parse(force_in);
+
+            }
+
+            // assume chunk_arr properly set up
 
             if (chunk_arr.size() != 3) {
                 throw std::runtime_error("fatal: incorrect size for chunk meta, check read result.");

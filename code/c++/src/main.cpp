@@ -45,6 +45,8 @@ int main() {
         std::string order;
         std::string shape;
         int zarr_format;
+        double add_offset;
+        double scale_factor;
 
         std::tie(chunks_interm, 
                 compressor_id, 
@@ -55,7 +57,10 @@ int main() {
                 filter_id,
                 order,
                 shape,
-                zarr_format) = readJsonMeta(my_hardcoded_path);
+                zarr_format,
+                add_offset,
+                scale_factor
+                ) = readJsonMeta(my_hardcoded_path);
                 
         std::vector<int> chunks = parseStrToIntVector(chunks_interm);
         std::cout << "JSON base metadata extraction success!" << std::endl;

@@ -150,18 +150,44 @@ void swapBytesFloat(float& value) {
 
     std::memcpy(&value, &intValue, sizeof(float));
 }
+
 #endif
 
-#ifndef BUF_TO_FLOATARR
-#define BUF_TO_FLOATARR
+#ifndef SWAP_BYTES_ALL
+#define SWAP_BYTES_ALL
+
+/**
+ * @brief swap bytes of any type
+ * @param value
+ * @return void
+ */
+template <typename T>
+void swapBytesAllType(T& value) {
+    static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable.");
+
+    unsigned char* bytes = reinterpret_cast<unsigned char*>(&value);
+    std::size_t size = sizeof(T);
+
+    for (std::size_t i = 0; i < size / 2; ++i) {
+        std::swap(bytes[i], bytes[size - i - 1]);
+    }
+}
+
+#endif
+
+#ifndef BUF_TO_FLOATARR_LILF4
+#define BUF_TO_FLOATARR_LILF4
 
 /**
  * @brief equivalent to numpy.frombuffer() - <f4 dtype
  * @param data, dataSize, floatArray
  * @return void
  */
-void fromBufToFloatArr(unsigned char* data, uLong dataSize, std::vector<float>& floatArray) {
+void fromBufToFloatArr_LILf4(unsigned char* data, uLong dataSize, std::vector<float>& floatArray) {
     
+    // check system mapping of float sizing
+    assert(sizeof(float) == 4);
+
     if (dataSize % sizeof(float) != 0) {
         std::cerr << "Invalid data size. It must be a multiple of sizeof(float)." << std::endl;
         return;
@@ -176,12 +202,31 @@ void fromBufToFloatArr(unsigned char* data, uLong dataSize, std::vector<float>& 
         }
     }
     
-    
 }
 
 #endif
 
+// TODO COMPLETE CHANGE TYPE
 
+/**
+ * @brief equivalent to numpy.frombuffer() - <i2 dtype
+ * @param data, dataSize, intArray 
+ */
+void fromBufToIntArr_LILI2(unsigned char* data, uLong dataSize, std::vector<int16_t>& intArray) {
+    if (dataSize % sizeof(int16_t) != 0) {
+        std::cerr << "Invalid data size. It must be a multiple of sizeof(int16_t)." << std::endl;
+        return;
+    }
+    uLong numInts = dataSize / sizeof(int16_t);
+    intArray.resize(numInts);
+
+    for (uLong i = 0; i < numInts; ++i) {
+        std::memcpy(&intArray[i], &data[i * sizeof(int16_t)], sizeof(int16_t));
+        if (!SYS_LITTLE_ENDIAN) {
+            swapBytesAllType(intArray[i]);
+        }
+    }
+}
 
 #ifndef MANUAL_KREAD
 #define MANUAL_KREAD
@@ -314,11 +359,36 @@ void primaryKerchunkRead(Aws::String bucketName,
     _debugPrintAfterUnshuffle(0, 101, dest);
 
     // numpy decode read
-    std::vector<float> floatArr;
+    layer_t::data_t out;
+
     if (dtype == "<f4") {
-        fromBufToFloatArr(dest, dresult->size, floatArr);
+        std::vector<float> floatArr;
+        fromBufToFloatArr_LILf4(dest, dresult->size, floatArr);
+        out = reconArrSingleChunk(floatArr, dimensions, order);
+        if (PRINT_WHOLE_BUFFER) {
+            std::cout << "complete fetched buffer result : \n" << std::endl;
+            for (const auto& element : floatArr) {
+                std::cout << element << " ";
+            }
+            std::cout << std::endl;
+        }
     } 
-    else if (dtype == "|i4") {
+    else if (dtype == "<i2") {
+        std::vector<int16_t> intArr;
+        fromBufToIntArr_LILI2(dest, dresult->size, intArr);
+
+        // TODO accomodate single chunk construction for diff types
+        // out = reconArrSingleChunk(intArr, dimensions, order);
+        
+        if (PRINT_WHOLE_BUFFER) {
+            std::cout << "complete fetched buffer result : \n" << std::endl;
+            for (const auto& element : intArr) {
+                std::cout << element << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+    else if (dtype == "|i1") {
         std::cout << "reading for this dtype not implemented" << std::endl;
         throw std::runtime_error("");
     }
@@ -328,11 +398,11 @@ void primaryKerchunkRead(Aws::String bucketName,
     }
 
     // try: reconstruct chunk to proper dimensions 
-    layer_t::data_t out = reconArrSingleChunk(floatArr, dimensions, order);
-    std::cout << "print at indices: " << harcoded_test_visit[0] << "," << harcoded_test_visit[1] << "," << harcoded_test_visit[2] << std::endl;
-    printAtIndices(out,harcoded_test_visit);
+    if (PRINT_AT_TEST_VISIT) {
+        std::cout << "print at indices: " << harcoded_test_visit[0] << "," << harcoded_test_visit[1] << "," << harcoded_test_visit[2] << std::endl;
+        printAtIndices(out,harcoded_test_visit);
+    }
     
-
     delete[] dresult->buffer;
     delete[] dest;
     delete dresult;
