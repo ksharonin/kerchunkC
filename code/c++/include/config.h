@@ -27,13 +27,26 @@
 #define USE_LOCAL true
 
 // path to metadata JSON
-#define HARDCODED_JSON_PATH "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json" // "/Users/katrinasharonin/Downloads/kerchunkC/code/jupyter/01_air_pressure_at_mean_sea_level.json"
+#define HARDCODED_JSON_PATH "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
+// "/Users/katrinasharonin/Downloads/kerchunkC/jsons/ATL03_REF.json" 
+// "/Users/katrinasharonin/Downloads/kerchunkC/code/jupyter/01_air_pressure_at_mean_sea_level.json"
+// "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
+
 // hardcoded byte stream source local to device
-#define HARCODED_LOCAL_NC_PATH "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e20230060509376_c20230060509434.nc" //  "/Users/katrinasharonin/Downloads/2020_01_data_air_pressure_at_mean_sea_level.nc"
+#define HARCODED_LOCAL_NC_PATH "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e20230060509376_c20230060509434.nc"
+// "/Users/katrinasharonin/Downloads/2020_01_data_air_pressure_at_mean_sea_level.nc"
+// "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e20230060509376_c20230060509434.nc" 
+// "/Users/katrinasharonin/Downloads/2020_01_data_air_pressure_at_mean_sea_level.nc"
+
 // hardcoded dataset name/path in file, leave as "" if not applicable
 #define HARDCODED_DATASET_NAME ""
+// "/quality_assessment/gt2l/"
+
 // harcoded variable; if single variable you can leave as ""
-#define HARCODED_VARIABLE "Rad" //  ""
+#define HARDCODED_VARIABLE "Rad"
+// "qa_perc_signal_conf_ph_low" 
+// "air_pressure_at_mean_sea_level" 
+// "Rad"
 
 // inside of a chunk e.g. size {24, 100, 100} visit at index {x,y,z}
 #define HARDCODED_TEST_VISIT {12, 33, 10}
