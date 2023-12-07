@@ -418,7 +418,7 @@ void primaryKerchunkRead(Aws::String bucketName,
         if (PRINT_WHOLE_BUFFER) {
             std::cout << "complete fetched buffer result : \n" << std::endl;
             for (const auto& element : intArr) {
-                std::cout << element << " ";
+                std::cout <<element << " ";
             }
             std::cout << std::endl;
         }

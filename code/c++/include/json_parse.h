@@ -299,9 +299,6 @@ std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, std::v
 
             }
 
-            // assume chunk_arr properly set up
-            // nlohmann::json& chunk_arr_ref = chunk_arr;
-
             if (chunk_arr.size() != 3) {
                 throw std::runtime_error("fatal: incorrect size for chunk meta, check read result.");
             }
