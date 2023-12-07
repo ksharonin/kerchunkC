@@ -60,12 +60,21 @@ DecompressionResult* decompressZlib(Bytef* compressedData,
 
     result = inflate(&stream, Z_NO_FLUSH);
 
+    if (result == Z_DATA_ERROR) {
+        result = inflateEnd(&stream);
+        result = inflateInit2(&stream, -MAX_WBITS);
+        result = inflate(&stream, Z_NO_FLUSH);
+    }
+
     while (result == Z_BUF_ERROR || result != Z_STREAM_END) {
+
+        // excessive size check
         if (destSize >= static_cast<uLong>(1) << 31) {
             throw std::runtime_error("Excessive size of destSize, failed zlib decompression");
             inflateEnd(&stream);
             return nullptr;
         }
+
         delete[] destBuffer;
         destSize *= 2;
         destBuffer = new Bytef[destSize];

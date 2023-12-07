@@ -59,10 +59,10 @@ std::tuple< std::vector<int>,
         all_objects.push_back(objectName);
 
         // TODO: MODIFY IN FUTURE SINCE THIS IS A RISKY PRINT
-        std::cout << "startByte of chunk indices (not fully printed): " << i[0] << i[1] << i[3] << " is: " << startByte << std::endl;
-        std::cout << "numBytes of chunk index (not fully printed): " << i[0] << i[1] << i[3] << " is: " << numBytes << std::endl;
-        std::cout << "bucketName of: " << i[0] << i[1] << i[3] << " is: " << bucketName_x << std::endl;
-        std::cout << "objectName of: " << i[0] << i[1] << i[3] << "is: " << objectName_x << std::endl;
+        std::cout << "startByte of chunk indices (not fully printed): " << i[0] << "." << i[1] << "." << i[2] << " is: " << startByte << std::endl;
+        std::cout << "numBytes of chunk index (not fully printed): " << i[0] << "." << i[1] << "." << i[2] << " is: " << numBytes << std::endl;
+        std::cout << "bucketName of: " << i[0] << "." << i[1] << "." << i[2] << " is: " << bucketName_x << std::endl;
+        std::cout << "objectName of: " << i[0] << "." <<i[1] << "." << i[2] << "is: " << objectName_x << std::endl;
     }
 
     return std::make_tuple(all_start_bytes, all_num_bytes, all_buckets, all_objects);

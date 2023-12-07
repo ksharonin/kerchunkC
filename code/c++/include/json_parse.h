@@ -309,7 +309,6 @@ std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, std::v
             std::string s3Path= chunk_arr[0];
             int startByte = chunk_arr[1];
             int numBytes = chunk_arr[2];
-            //std::string chunk_meta = chunk_arr.dump();
             
             return std::make_tuple(s3Path, startByte, numBytes);
 
