@@ -26,7 +26,7 @@ int main() {
     {
         // SEE CONFIG.H FOR INPUTS
         int hardcoded_chunk_index = HARDCODED_CHUNK_INDEX;
-        std::vector<int> hardcoded_chunk_indices = HARDCODED_CHUNK_INDICES;
+        std::vector<std::vector<int>> hardcoded_chunk_indices = HARDCODED_CHUNK_INDICES;
         bool full_read = FULL_READ;
         std::string my_hardcoded_path = HARDCODED_JSON_PATH;
         std::vector<int> hardcoded_test_visit = HARDCODED_TEST_VISIT;

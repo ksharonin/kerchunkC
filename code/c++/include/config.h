@@ -20,7 +20,7 @@
 // chunk index e.g. chunk 0 of 100 chunks - opt to elimindate for HARDCODED_CHUNK_INDICES
 #define HARDCODED_CHUNK_INDEX 0
 //  visit multiple chunks at indices e.g. chunk 0, chunk 1, chunk 2
-#define HARDCODED_CHUNK_INDICES {0, 1, 2}
+#define HARDCODED_CHUNK_INDICES {{0, 0, 0}, {0, 0, 1}}
 // read ALL chunks as indicated by json
 #define FULL_READ false
 // flag for non s3 read, assume local file matches json meta

@@ -224,7 +224,7 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
  * @param chunk_index 
  * @return std::tuple<std::string, int, int> 
  */
-std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, int chunk_index) {
+std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, std::vector<int> chunk_index) {
     std::ifstream jsonFile(path_to_json);
     if (!jsonFile.is_open()) {
         throw std::runtime_error("Failed to open the JSON file");

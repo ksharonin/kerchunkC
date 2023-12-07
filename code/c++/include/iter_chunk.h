@@ -31,7 +31,7 @@ std::tuple< std::vector<int>,
             std::vector<const 
             Aws::String>, 
             std::vector<const Aws::String>
-          > iterChunkMetaData(std::vector<int> chunk_indices, std::string json_path) {
+          > iterChunkMetaData(std::vector<std::vector<int>> chunk_indices, std::string json_path) {
     
     std::string s3Path;
     int startByte;
@@ -45,7 +45,7 @@ std::tuple< std::vector<int>,
     std::vector<const Aws::String> all_buckets;
     std::vector<const Aws::String> all_objects;
 
-    for (int i: chunk_indices) {
+    for (std::vector<int> i: chunk_indices) {
         bucketName_x = "";
         objectName_x = "";
         std::tie(s3Path, startByte, numBytes) = readChunkMeta(json_path, i);
@@ -58,10 +58,11 @@ std::tuple< std::vector<int>,
         all_buckets.push_back(bucketName);
         all_objects.push_back(objectName);
 
-        std::cout << "startByte of chunk index: " << i << " is: " << startByte << std::endl;
-        std::cout << "numBytes of chunk index: " << i << " is: " << numBytes << std::endl;
-        std::cout << "bucketName of: " << i << " is: " << bucketName_x << std::endl;
-        std::cout << "objectName of: " << i << "is: " << objectName_x << std::endl;
+        // TODO: MODIFY IN FUTURE SINCE THIS IS A RISKY PRINT
+        std::cout << "startByte of chunk indices (not fully printed): " << i[0] << i[1] << i[3] << " is: " << startByte << std::endl;
+        std::cout << "numBytes of chunk index (not fully printed): " << i[0] << i[1] << i[3] << " is: " << numBytes << std::endl;
+        std::cout << "bucketName of: " << i[0] << i[1] << i[3] << " is: " << bucketName_x << std::endl;
+        std::cout << "objectName of: " << i[0] << i[1] << i[3] << "is: " << objectName_x << std::endl;
     }
 
     return std::make_tuple(all_start_bytes, all_num_bytes, all_buckets, all_objects);
@@ -70,7 +71,7 @@ std::tuple< std::vector<int>,
 
 #endif
 
-void  iterChunkRead(std::vector<int> hardcoded_chunk_indices,
+void  iterChunkRead(std::vector<std::vector<int>> hardcoded_chunk_indices,
                     std::vector<int> all_start_bytes,
                     std::vector<int> all_num_bytes,
                     std::vector<const Aws::String> all_buckets,
@@ -83,6 +84,10 @@ void  iterChunkRead(std::vector<int> hardcoded_chunk_indices,
                     std::string dtype,
                     std::vector<int> hardcoded_test_visit
                        ) {
+    
+    // should correspond w indices
+    assert(hardcoded_chunk_indices.size() == all_start_bytes.size() == all_num_bytes.size() == all_buckets.size() == all_objects.size());
+    
     // dispatch KerchunkRead with corresonding metadata
     for (int i = 0; i < hardcoded_chunk_indices.size(); i++) {
         // extract with corresponding index in position
