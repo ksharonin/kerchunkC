@@ -20,7 +20,7 @@
 // chunk index e.g. chunk 0 of 100 chunks - opt to elimindate for HARDCODED_CHUNK_INDICES
 #define HARDCODED_CHUNK_INDEX 0
 //  visit multiple chunks at indices e.g. chunk 0, chunk 1, chunk 2
-#define HARDCODED_CHUNK_INDICES {{0, 0, 0, 17}, {0, 0, 0, 18}}
+#define HARDCODED_CHUNK_INDICES {{0, 0, 0, 17}} // {{0, 0, 0, 17}, {0, 0, 0, 18}}
 // read ALL chunks as indicated by json
 #define FULL_READ false
 // flag for non s3 read, assume local file matches json meta
@@ -56,9 +56,10 @@
 // print entire fetched buffer
 #define PRINT_WHOLE_BUFFER false
 // verbose printing
-#define DEBUG_PRINT_ON true
+#define DEBUG_PRINT_ON false
 // timers
-#define TIMER_S3_READ_ON true
+#define TIMER_S3_READ_ON false
+#define TIMER_LOCAL_PROCESS true
 // s3 settings
 #define CLIENT_REGION_ON false
 #define CLIENT_REGION "us-east-1"

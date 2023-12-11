@@ -289,8 +289,16 @@ void primaryKerchunkRead(Aws::String bucketName,
 
     // local req flag - assume path stays constant with paired JSON
     std::vector<unsigned char> retrievedBytes;
+    // timers for local reading process, exclude multi-layer construction
+    std::chrono::time_point<std::chrono::system_clock> start_local;
+    std::chrono::time_point<std::chrono::system_clock> end_local;
 
     if (USE_LOCAL) {
+
+        if (TIMER_LOCAL_PROCESS) {
+            start_local = std::chrono::system_clock::now();
+        }
+
         std::ifstream file("/" + std::string(objectName.c_str()), std::ios::binary);
         if (!file.is_open()) {
             std::cerr << "Error opening the file!" << std::endl;
@@ -444,6 +452,17 @@ void primaryKerchunkRead(Aws::String bucketName,
     else {
         std::cout << "reading for this dtype not implemented" << std::endl;
         throw std::runtime_error("");
+    }
+
+    if (TIMER_LOCAL_PROCESS) {
+        end_local = std::chrono::system_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end_local-start_local;
+        std::time_t end_time = std::chrono::system_clock::to_time_t(end_local);
+        std::cout << std::endl;
+        std::cout << std::endl;
+        std::cout << "TIMER_LOCAL_PROCESS: finished computation at " << std::ctime(&end_time)
+                   << "elapsed time: " << elapsed_seconds.count() << "s"
+                   << std::endl;
     }
 
     // try: reconstruct chunk to proper dimensions 
