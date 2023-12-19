@@ -11,9 +11,9 @@
 #include <vector>
 #include <variant>
 #include <cstring>
-#include <aws/core/Aws.h>
-#include <aws/s3/S3Client.h>
-#include <aws/s3/model/GetObjectRequest.h>
+// #include <aws/core/Aws.h>
+// #include <aws/s3/S3Client.h>
+// #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
 
 # ifndef ITER_CHUNK_META
@@ -28,9 +28,8 @@
  */
 std::tuple< std::vector<int>, 
             std::vector<int>, 
-            std::vector<const 
-            Aws::String>, 
-            std::vector<const Aws::String>
+            std::vector<const std::string>, // std::vector<const Aws::String>, 
+            std::vector<const std::string> // std::vector<const Aws::String>
           > iterChunkMetaData(std::vector<std::vector<int>> chunk_indices, std::string json_path) {
     
     std::string s3Path;
@@ -42,16 +41,16 @@ std::tuple< std::vector<int>,
     // output vecs - correspond with indices
     std::vector<int> all_start_bytes;
     std::vector<int> all_num_bytes;
-    std::vector<const Aws::String> all_buckets;
-    std::vector<const Aws::String> all_objects;
+    std::vector<const std::string> all_buckets; // std::vector<const Aws::String> all_buckets;
+    std::vector<const std::string> all_objects; // std::vector<const Aws::String> all_objects;
 
     for (std::vector<int> i: chunk_indices) {
         bucketName_x = "";
         objectName_x = "";
         std::tie(s3Path, startByte, numBytes) = readChunkMeta(json_path, i);
         extractBucketAndKey(s3Path, bucketName_x, objectName_x);
-        const Aws::String bucketName(bucketName_x.c_str());
-        const Aws::String objectName(objectName_x.c_str());
+        const std::string bucketName(bucketName_x.c_str()); // const Aws::String bucketName(bucketName_x.c_str());
+        const std::string objectName(objectName_x.c_str()); // const Aws::String objectName(objectName_x.c_str());
 
         all_start_bytes.push_back(startByte);
         all_num_bytes.push_back(numBytes);
@@ -74,9 +73,9 @@ std::tuple< std::vector<int>,
 void  iterChunkRead(std::vector<std::vector<int>> hardcoded_chunk_indices,
                     std::vector<int> all_start_bytes,
                     std::vector<int> all_num_bytes,
-                    std::vector<const Aws::String> all_buckets,
-                    std::vector<const Aws::String> all_objects,
-                    Aws::S3::S3Client client,
+                    std::vector<const std::string> all_buckets, // std::vector<const Aws::String> all_buckets,
+                    std::vector<const std::string> all_objects, // std::vector<const Aws::String> all_objects,
+                    // Aws::S3::S3Client client,
                     std::string compressor_id,
                     std::string filter_id, 
                     std::vector<int> chunks,
@@ -97,14 +96,14 @@ void  iterChunkRead(std::vector<std::vector<int>> hardcoded_chunk_indices,
         // extract with corresponding index in position
         int startByte = all_start_bytes[i];
         int numBytes = all_num_bytes[i];
-        const Aws::String bucketName = all_buckets[i];
-        const Aws::String objectName = all_objects[i];
+        const std::string bucketName = all_buckets[i];
+        const std::string objectName = all_objects[i];
 
         std::cout << std::endl;
         std::cout << "Converting binary stream to decoded/decompressed chunks for chunk at index: " << i << "..." << std::endl;
         primaryKerchunkRead(bucketName, 
                             objectName, 
-                            client, 
+                            // client, 
                             startByte, 
                             numBytes, 
                             compressor_id.c_str(),
@@ -128,7 +127,7 @@ void  iterChunkRead(std::vector<std::vector<int>> hardcoded_chunk_indices,
         int sum_of_numbytes = std::accumulate(all_num_bytes.begin(), all_num_bytes.end(), 0);
         primaryKerchunkRead(all_buckets[0], 
                         all_objects[0], 
-                        client, 
+                        // client, 
                         all_start_bytes[0], 
                         sum_of_numbytes, 
                         compressor_id.c_str(),

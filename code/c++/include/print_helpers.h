@@ -12,9 +12,9 @@
 #include <vector>
 #include <variant>
 #include <cstring>
-#include <aws/core/Aws.h>
-#include <aws/s3/S3Client.h>
-#include <aws/s3/model/GetObjectRequest.h>
+// #include <aws/core/Aws.h>
+// #include <aws/s3/S3Client.h>
+// #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
 #include <zlib.h>
 #include "custom_structs.h"
@@ -28,51 +28,51 @@
  * @param bucketName, objectName, bytesRange, client
  * @return void
  */
-void _debugGetByteS3Stream(Aws::String bucketName, 
-                    Aws::String objectName, 
-                    char bytesRange[],
-                    Aws::S3::S3Client client) {
+// void _debugGetByteS3Stream(Aws::String bucketName, 
+//                     Aws::String objectName, 
+//                     char bytesRange[],
+//                     Aws::S3::S3Client client) {
 
-    if (!DEBUG_PRINT_ON) {
-        return;
-    }
+//     if (!DEBUG_PRINT_ON) {
+//         return;
+//     }
 
-    Aws::S3::Model::GetObjectRequest request;
+//     Aws::S3::Model::GetObjectRequest request;
 
-    // set bucket + key
-    request.SetBucket(bucketName);
-    request.SetKey(objectName);
+//     // set bucket + key
+//     request.SetBucket(bucketName);
+//     request.SetKey(objectName);
 
-    // read bytes from req
-    request.WithRange(bytesRange);
+//     // read bytes from req
+//     request.WithRange(bytesRange);
 
-    auto getObjectOutcome = client.GetObject(request);
+//     auto getObjectOutcome = client.GetObject(request);
 
-    if (!getObjectOutcome.IsSuccess()) {
-        const Aws::S3::S3Error &err = getObjectOutcome.GetError();
-        std::cerr << "Error: GetObject: " <<
-                err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
-        throw std::runtime_error("");
-    }
-    else {
-        Aws::IOStream& byteStream = getObjectOutcome.GetResultWithOwnership().GetBody();
-        std::cout << std::endl;
-        std::cout << "Successfully retrieved '" << objectName << "' from '"
-                << bucketName << "'." << std::endl;
-        std::cout << std::endl;
-        // w buffer write to console
-        char byte;
-        while (byteStream.get(byte)) {
-            std::bitset<8> binary(byte);
-            std::cout << binary << " ";
-        }
-        std::cout << std::endl;
+//     if (!getObjectOutcome.IsSuccess()) {
+//         const Aws::S3::S3Error &err = getObjectOutcome.GetError();
+//         std::cerr << "Error: GetObject: " <<
+//                 err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
+//         throw std::runtime_error("");
+//     }
+//     else {
+//         Aws::IOStream& byteStream = getObjectOutcome.GetResultWithOwnership().GetBody();
+//         std::cout << std::endl;
+//         std::cout << "Successfully retrieved '" << objectName << "' from '"
+//                 << bucketName << "'." << std::endl;
+//         std::cout << std::endl;
+//         // w buffer write to console
+//         char byte;
+//         while (byteStream.get(byte)) {
+//             std::bitset<8> binary(byte);
+//             std::cout << binary << " ";
+//         }
+//         std::cout << std::endl;
 
-        // return byteStream;
-        return;
-    }
+//         // return byteStream;
+//         return;
+//     }
 
-}
+// }
 
 #endif
 

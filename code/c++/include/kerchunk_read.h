@@ -11,9 +11,9 @@
 #include <vector>
 #include <variant>
 #include <cstring>
-#include <aws/core/Aws.h>
-#include <aws/s3/S3Client.h>
-#include <aws/s3/model/GetObjectRequest.h>
+// #include <aws/core/Aws.h>
+// #include <aws/s3/S3Client.h>
+// #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
 #include <zlib.h>
 #include "mult_dim_form.h"
@@ -272,9 +272,9 @@ void fromBufToIntArr_LILI2(unsigned char* data, uLong dataSize, std::vector<int1
  * maybe consider printing vals in the decompressor?
  * @note implement ability to do numcodecs.shuffle.Shuffle(4).decode(buf) where 4 is elem_size
  */
-void primaryKerchunkRead(Aws::String bucketName, 
-                        Aws::String objectName, 
-                        Aws::S3::S3Client client,
+void primaryKerchunkRead(std::string bucketName, // Aws::String bucketName, 
+                        std::string objectName, // Aws::String objectName, 
+                        // Aws::S3::S3Client client,
                         unsigned int startByte, 
                         unsigned int numBytes, 
                         const char* decompressor,
@@ -325,49 +325,50 @@ void primaryKerchunkRead(Aws::String bucketName,
         }
         file.close(); 
         
-    } else {
-        Aws::S3::Model::GetObjectRequest request;
-        request.SetBucket(bucketName);
-        request.SetKey(objectName);
+    } 
+    // else {
+    //     Aws::S3::Model::GetObjectRequest request;
+    //     request.SetBucket(bucketName);
+    //     request.SetKey(objectName);
 
-        std::string start = std::to_string(startByte);
-        std::string end = std::to_string(startByte+numBytes);
-        std::string result = "bytes="+start+"-"+end;
-        const char* bytesRange = result.c_str();
-        Aws::S3::Model::GetObjectOutcome getObjectOutcome;
+    //     std::string start = std::to_string(startByte);
+    //     std::string end = std::to_string(startByte+numBytes);
+    //     std::string result = "bytes="+start+"-"+end;
+    //     const char* bytesRange = result.c_str();
+    //     Aws::S3::Model::GetObjectOutcome getObjectOutcome;
 
-        if (TIMER_S3_READ_ON) {
-            auto start = std::chrono::system_clock::now();
-            request.WithRange(bytesRange);
-            getObjectOutcome = client.GetObject(request);
-            auto end = std::chrono::system_clock::now();
-            std::chrono::duration<double> elapsed_seconds = end-start;
-            std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+    //     if (TIMER_S3_READ_ON) {
+    //         auto start = std::chrono::system_clock::now();
+    //         request.WithRange(bytesRange);
+    //         getObjectOutcome = client.GetObject(request);
+    //         auto end = std::chrono::system_clock::now();
+    //         std::chrono::duration<double> elapsed_seconds = end-start;
+    //         std::time_t end_time = std::chrono::system_clock::to_time_t(end);
         
-            std::cout << "finished computation at " << std::ctime(&end_time)
-                    << "elapsed time: " << elapsed_seconds.count() << "s"
-                    << std::endl;
+    //         std::cout << "finished computation at " << std::ctime(&end_time)
+    //                 << "elapsed time: " << elapsed_seconds.count() << "s"
+    //                 << std::endl;
 
-        } else {
-            request.WithRange(bytesRange);
-            getObjectOutcome = client.GetObject(request);
-        }
-         if (getObjectOutcome.IsSuccess()) {
-            // generate char vector 
-            Aws::IOStream& objectDataStream = getObjectOutcome.GetResultWithOwnership().GetBody();
-            // std::vector<unsigned char> retrievedBytes;
-            char buffer[1024];
-            while (!objectDataStream.eof()) {
-                objectDataStream.read(buffer, sizeof(buffer));
-                size_t bytesRead = objectDataStream.gcount();
-                for (size_t i = 0; i < bytesRead; i++) {
-                    retrievedBytes.push_back(static_cast<unsigned char>(buffer[i]));
-                }
-            }
-        } else {
-            std::cerr << "Error: " << getObjectOutcome.GetError().GetExceptionName() << ": " << getObjectOutcome.GetError().GetMessage() << std::endl;
-        }
-    }
+    //     } else {
+    //         request.WithRange(bytesRange);
+    //         getObjectOutcome = client.GetObject(request);
+    //     }
+    //      if (getObjectOutcome.IsSuccess()) {
+    //         // generate char vector 
+    //         Aws::IOStream& objectDataStream = getObjectOutcome.GetResultWithOwnership().GetBody();
+    //         // std::vector<unsigned char> retrievedBytes;
+    //         char buffer[1024];
+    //         while (!objectDataStream.eof()) {
+    //             objectDataStream.read(buffer, sizeof(buffer));
+    //             size_t bytesRead = objectDataStream.gcount();
+    //             for (size_t i = 0; i < bytesRead; i++) {
+    //                 retrievedBytes.push_back(static_cast<unsigned char>(buffer[i]));
+    //             }
+    //         }
+    //     } else {
+    //         std::cerr << "Error: " << getObjectOutcome.GetError().GetExceptionName() << ": " << getObjectOutcome.GetError().GetMessage() << std::endl;
+    //     }
+    // }
 
    
     std::vector<unsigned char> outputData;
@@ -382,7 +383,7 @@ void primaryKerchunkRead(Aws::String bucketName,
     assert(dresult->size != 0);
     assert(dresult->buffer != nullptr);
 
-    _debugPrintAfterDecompression(0, 101, dresult);
+    // _debugPrintAfterDecompression(0, 101, dresult);
 
     // cast to unsig char* for undoShuffle; dresult->size in bytes 
     unsigned char* buf = reinterpret_cast<unsigned char*>(dresult->buffer);

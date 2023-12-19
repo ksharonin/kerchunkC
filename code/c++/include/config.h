@@ -11,9 +11,9 @@
 #include <vector>
 #include <variant>
 #include <cstring>
-#include <aws/core/Aws.h>
-#include <aws/s3/S3Client.h>
-#include <aws/s3/model/GetObjectRequest.h>
+// #include <aws/core/Aws.h>
+// #include <aws/s3/S3Client.h>
+// #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
 #include <zlib.h>
 
@@ -27,14 +27,14 @@
 #define USE_LOCAL true
 
 // path to metadata JSON
-#define HARDCODED_JSON_PATH "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
+#define HARDCODED_JSON_PATH "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2022-184.json"
+// "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
 // "/Users/katrinasharonin/Downloads/kerchunkC/jsons/01_air_pressure_at_mean_sea_level.json"
-// "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
 // "/Users/katrinasharonin/Downloads/kerchunkC/jsons/ATL03_REF.json" 
-// "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
 
 // hardcoded byte stream source local to device
-#define HARCODED_LOCAL_NC_PATH "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060550309_e20230060559376_c20230060559423.nc"
+#define HARCODED_LOCAL_NC_PATH "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2022/184/23/OR_ABI-L1b-RadF-M6C02_G17_s20221842350319_e20221842359386_c20221842359411.nc"
+// "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060550309_e20230060559376_c20230060559423.nc"
 // "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e20230060509376_c20230060509434.nc"
 // "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e20230060509376_c20230060509434.nc"
 // "/Users/katrinasharonin/Downloads/2020_01_data_air_pressure_at_mean_sea_level.nc"
@@ -54,7 +54,7 @@
 // print at indices, assuming layer_T make it done
 #define PRINT_AT_TEST_VISIT false
 // print entire fetched buffer
-#define PRINT_WHOLE_BUFFER false
+#define PRINT_WHOLE_BUFFER true
 // verbose printing
 #define DEBUG_PRINT_ON false
 // timers

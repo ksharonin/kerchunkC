@@ -31,7 +31,10 @@ if INTERACTIVE:
 from ref_utils import gen_refs, process_chunk
 
 HARDCODED_DIR = "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data"
-HARCODED_SAMPLE_FILE = "OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e20230060509376_c20230060509434.nc"
+# "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2022/184/23"
+#  "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data"
+HARCODED_SAMPLE_FILE = "OR_ABI-L1b-RadF-M6C02_G17_s20221842350319_e20221842359386_c20221842359411.nc"
+# "OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e20230060509376_c20230060509434.nc"
 
 # s20171671145342: is start of scan time
 # 4 digit year
@@ -42,8 +45,8 @@ HARCODED_SAMPLE_FILE = "OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e2023006050937
 # 1 digit tenth of second
 
 # type int
-args_year = 2023
-args_doy = 6
+args_year = 2022
+args_doy = 184
 
 DDIR = os.path.join(f"{args_year:04d}", f"{args_doy:03d}")
 RESULTS = os.path.join("/Users/katrinasharonin/Downloads/GOES_17_recreation/results")
@@ -57,6 +60,7 @@ finalfile = os.path.join(finaldir, f"{args_year:04d}-{args_doy:03d}.json")
 CACHEFILE = "goesfiles-all"
 # "/css/geostationary/BackStage/GOES-17-ABI-L1B-FULLD" <- contains year/doy/hour... struct etc
 BASEPATH = os.path.join(HARDCODED_DIR, DDIR) # replaced css dir with harcoded_dir
+print(BASEPATH)
 assert os.path.exists(BASEPATH)
 
 if __name__ == '__main__':
