@@ -70,8 +70,8 @@ int main() {
     std::cout << "Start JSON chunk index-based metadata extraction" << std::endl;
     std::vector<int> all_start_bytes;
     std::vector<int> all_num_bytes;
-    std::vector<const std::string> all_buckets; // std::vector<const Aws::String> all_buckets;
-    std::vector<const std::string> all_objects; // std::vector<const Aws::String> all_objects;
+    std::vector<std::string> all_buckets; // std::vector<const Aws::String> all_buckets;
+    std::vector<std::string> all_objects; // std::vector<const Aws::String> all_objects;
     std::tie(all_start_bytes,
                 all_num_bytes,
                 all_buckets,
