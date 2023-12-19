@@ -1,24 +1,8 @@
 import zlib
 import json
-import boto3
-import boto
-import fsspec
-import fsspec.utils
 import numpy as np
 import xarray as xr
-import zarr
-import os
-import ujson
-import s3fs
-import numcodecs
-import h5py
 import time
-
-import kerchunk.combine
-from kerchunk.zarr import single_zarr
-from kerchunk.combine import MultiZarrToZarr
-from kerchunk.hdf import SingleHdf5ToZarr
-from pathlib import Path
 
 json_path = "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
 
