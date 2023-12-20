@@ -186,11 +186,17 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
                 elementsize = filters["elementsize"];
                 filter_id = filters["id"];
             }
-            else {
+            else if (filters.contains("id") && filters.contains("level")) {
                 compressor_id = filters["id"];
                 level = filters["level"];
                 // include for future conditioning
                 filter_id = filters["id"];
+            }
+            else {
+
+                assert(zarray["filters"][0].is_null());
+                // for now leave vars as is, assume does not need to apply 
+            
             }
 
             // for now assume the compressor field cannot be a net null; either in filter or here

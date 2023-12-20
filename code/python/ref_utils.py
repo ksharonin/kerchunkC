@@ -13,7 +13,7 @@ from kerchunk.combine import MultiZarrToZarr
 
 def gen_refs(f):
     """
-    Generate a single Kerchunk reference dictionary for a given NetCDF file
+    Generate a single Kerchunk reference dictionary for a given H5 file
     """
     try:
         with open(f, 'rb') as infile:
