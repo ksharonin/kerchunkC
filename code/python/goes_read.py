@@ -3,8 +3,9 @@ import json
 import numpy as np
 import xarray as xr
 import time
+import fsspec
 
-json_path = "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
+json_path = "/discover/nobackup/ashiklom/aist-eso/goes-benchmarks/results/final/2022-184.json"
 
 ds = xr.open_dataset("reference://",mask_and_scale=True, engine="zarr", backend_kwargs={
                     "consolidated": False,

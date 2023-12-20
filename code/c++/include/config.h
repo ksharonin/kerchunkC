@@ -27,13 +27,13 @@
 #define USE_LOCAL true
 
 // path to metadata JSON
-#define HARDCODED_JSON_PATH "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2022-184.json"
+#define HARDCODED_JSON_PATH "/discover/nobackup/ashiklom/aist-eso/goes-benchmarks/results/final/2022-184.json"
 // "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
 // "/Users/katrinasharonin/Downloads/kerchunkC/jsons/01_air_pressure_at_mean_sea_level.json"
 // "/Users/katrinasharonin/Downloads/kerchunkC/jsons/ATL03_REF.json" 
 
 // hardcoded byte stream source local to device
-#define HARCODED_LOCAL_NC_PATH "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2022/184/23/OR_ABI-L1b-RadF-M6C02_G17_s20221842350319_e20221842359386_c20221842359411.nc"
+// #define HARCODED_LOCAL_NC_PATH "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2022/184/23/OR_ABI-L1b-RadF-M6C02_G17_s20221842350319_e20221842359386_c20221842359411.nc"
 // "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060550309_e20230060559376_c20230060559423.nc"
 // "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e20230060509376_c20230060509434.nc"
 // "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e20230060509376_c20230060509434.nc"

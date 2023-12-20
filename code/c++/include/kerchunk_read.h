@@ -16,6 +16,9 @@
 // #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
 #include <zlib.h>
+#include <chrono>
+#include <cassert>
+#include <iomanip>
 #include "mult_dim_form.h"
 #include "print_helpers.h"
 #include "config.h"
@@ -403,8 +406,9 @@ void primaryKerchunkRead(std::string bucketName, // Aws::String bucketName,
         _debugPrintAfterUnshuffle(0, 101, dest);
     } else {
         if (filters != zlib_type) {
-            throw std::runtime_error("Fatal: Unknown filter encountered, inspect in kerchunk_read.h");
-        }
+            // throw std::runtime_error("Fatal: Unknown filter encountered, inspect in kerchunk_read.h");
+	    std::cout << "Warning: no filter detected (including zlib)" << std::endl;
+	}
         // copy over into dest - assumes no other but zlib applied
         std::memcpy(dest, buf, dresult->size);
     }

@@ -16,6 +16,10 @@
 // #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
 #include <zlib.h>
+#include <memory>
+#include <iomanip>
+#include <cassert>
+#include <chrono>
 
 struct layer_t;
 

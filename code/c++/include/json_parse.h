@@ -16,7 +16,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "/Users/katrinasharonin/Downloads/kerchunkC/code/c++/include/json.hpp"
+#include "/home/ksharoni/GOES_KERCHUNKC/code/c++/include/json.hpp"
 #include "config.h"
 
 using namespace std;
@@ -187,12 +187,21 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
                 elementsize = filters["elementsize"];
                 filter_id = filters["id"];
             }
-            else {
+            else if (filters.contains("id") && filters.contains("level")) {
                 compressor_id = filters["id"];
                 level = filters["level"];
                 // include for future conditioning
                 filter_id = filters["id"];
             }
+	    else {
+		// std::cout << zarray["filters"] << std::endl;
+		// std::cout << zarray["filters"][0] << std::endl;
+		// std::cout << filters << std::endl;
+
+	    	assert(zarray["filters"][0].is_null());
+		// for now leave vars as is, assume does not need to apply 
+	    
+	    }
 
             // for now assume the compressor field cannot be a net null; either in filter or here
             json compressor = json::parse((std::string) zarray["compressor"].dump());
