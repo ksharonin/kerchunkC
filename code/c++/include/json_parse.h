@@ -194,12 +194,9 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
                 filter_id = filters["id"];
             }
 	    else {
-		// std::cout << zarray["filters"] << std::endl;
-		// std::cout << zarray["filters"][0] << std::endl;
-		// std::cout << filters << std::endl;
 
 	    	assert(zarray["filters"][0].is_null());
-		// for now leave vars as is, assume does not need to apply 
+		    // for now leave vars as is, assume does not need to apply 
 	    
 	    }
 
