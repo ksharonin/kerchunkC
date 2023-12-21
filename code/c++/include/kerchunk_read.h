@@ -22,6 +22,7 @@
 #include "mult_dim_form.h"
 #include "print_helpers.h"
 #include "config.h"
+#include "detect_dtype.h"
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 const bool SYS_LITTLE_ENDIAN = true;
@@ -206,6 +207,34 @@ void swapBytesAllType(T& value) {
 }
 
 #endif
+
+/**
+ * @brief generic buf to template type T
+ * 
+ * @tparam T 
+ * @param data 
+ * @param dataSize 
+ * @param dataArray 
+ * @param isLittleEndian 
+ */
+template<typename T>
+void fromBufToType_ALL(unsigned char* data, std::size_t dataSize, std::vector<T>& dataArray, bool isLittleEndian) {
+    if (dataSize % sizeof(T) != 0) {
+        std::cerr << "ERR: invalid data size for provided T. It must be a multiple of sizeof(" << typeid(T).name() << ")." << std::endl;
+        return;
+    }
+
+    std::size_t numElements = dataSize / sizeof(T);
+    dataArray.resize(numElements);
+
+    for (std::size_t i = 0; i < numElements; ++i) {
+        std::memcpy(&dataArray[i], &data[i * sizeof(T)], sizeof(T));
+        // not lil endian system but structure requires it
+        if (!SYS_LITTLE_ENDIAN && isLittleEndian) {
+            swapBytesAllType(dataArray[i]);
+        }
+    }
+}
 
 #ifndef BUF_TO_FLOATARR_LILF4
 #define BUF_TO_FLOATARR_LILF4
@@ -413,14 +442,85 @@ void primaryKerchunkRead(std::string bucketName, // Aws::String bucketName,
         std::memcpy(dest, buf, dresult->size);
     }
 
-    // numpy decode read
+    // NOTE: suppressed multi layer representation
     layer_t::data_t out;
 
+    // fetch dtype info
+    TypeInfo info = parseDtype(dtype);
+    Endianness endianness = info.endianness;
+    DataType dataType = info.dataType;
+    std::size_t size_det = info.size;
+
+    // TODO: find a better way to move rather than outside init
+
+    // float - also used as output form
+    std::vector<float> floatArr;
+    // ints
+    std::vector<int8_t> intArr8;
+    std::vector<int16_t> intArr16;
+    std::vector<int32_t> intArr32;
+    // uint
+    // TODO
+    // other types
+    // TODO
+
+    switch (dataType) {
+        case DataType::FLOATING_POINT:
+            switch (size_det) {
+                case 32:
+                    // std::vector<float> floatArr;
+                    fromBufToType_ALL(dest, dresult->size, floatArr, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(floatArr, scale_factor, add_offset);
+                    break;
+                default:
+                    throw std::runtime_error("Unknown float size encountered");
+                    break;
+            }
+            break;
+        case DataType::INTEGER:
+            // std::vector<int16_t> intArr;
+            // std::vector<float> final_output;
+            switch (size_det) {
+                case 1: // 1*8 == 8
+                    fromBufToType_ALL(dest, dresult->size, intArr8, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(intArr8, scale_factor, add_offset);
+                    break;
+                case 2: // 2*8 == 16
+                    fromBufToType_ALL(dest, dresult->size, intArr16, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(intArr16, scale_factor, add_offset);
+                    break;
+                case 4: // 4*8 == 32
+                    fromBufToType_ALL(dest, dresult->size, intArr32, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(intArr32, scale_factor, add_offset);
+                    break;
+                default:
+                    throw std::runtime_error("Unknown int size encountered");
+                    break;
+            }
+            break;
+        default:
+            throw std::runtime_error("Unknown dataType encountered / unimplemented.");
+            break;
+    }
+
+    if (PRINT_WHOLE_BUFFER) {
+        std::cout << "complete fetched buffer result : \n" << std::endl;
+        for (const auto& element : floatArr) {
+            std::cout << static_cast<float>(element) << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    // numpy decode read
+    /*
     if (dtype == "<f4") {
         std::vector<float> floatArr;
         fromBufToFloatArr_LILf4(dest, dresult->size, floatArr);
         floatArr = scaleAndOffset(floatArr, scale_factor, add_offset);
-        out = reconArrSingleChunk(floatArr, dimensions, order);
+
+        // NOTE: suppressed multi layer representation
+        // out = reconArrSingleChunk(floatArr, dimensions, order);
+
         if (PRINT_WHOLE_BUFFER) {
             std::cout << "complete fetched buffer result : \n" << std::endl;
             for (const auto& element : floatArr) {
@@ -451,13 +551,13 @@ void primaryKerchunkRead(std::string bucketName, // Aws::String bucketName,
         }
     }
     else if (dtype == "|i1") {
-        std::cout << "reading for this dtype not implemented" << std::endl;
+        std::cout << "ERR: reading for this dtype: " << dtype << " not implemented \n" << std::endl;
         throw std::runtime_error("");
     }
     else {
-        std::cout << "reading for this dtype not implemented" << std::endl;
+        std::cout << "ER:: reading for this dtype: " << dtype << " not implemented \n" << std::endl;
         throw std::runtime_error("");
-    }
+    } */
 
     if (TIMER_LOCAL_PROCESS) {
         end_local = std::chrono::system_clock::now();
@@ -501,5 +601,4 @@ void bufToArr(unsigned char* buf, std::string dtype) {
     }
 }
 */
-
 

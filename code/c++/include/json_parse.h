@@ -16,7 +16,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "/home/ksharoni/GOES_KERCHUNKC/code/c++/include/json.hpp"
+#include "json.hpp"
+//#include "/home/ksharoni/GOES_KERCHUNKC/code/c++/include/json.hpp"
 #include "config.h"
 
 using namespace std;
