@@ -268,7 +268,7 @@ std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, std::v
             if (strlen(HARDCODED_DATASET_NAME)==0) {
                 // Allow for a default "" which will take first known, not recommended
                 if (strlen(HARDCODED_VARIABLE)== 0) {
-                    throw std::runtime_error("Cannot use empty HARCDOED_VARIABLE, please specify var");
+                    throw std::runtime_error("Cannot use empty HARDCODED_VARIABLE, please specify var");
                 } 
                 else {
                     try {
