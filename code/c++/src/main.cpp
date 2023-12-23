@@ -14,6 +14,7 @@
 #include "kerchunk_read.h"
 #include "json_parse.h"
 #include "iter_chunk.h"
+#include "index_to_chunk.h"
 
 using namespace std;
 
@@ -24,8 +25,9 @@ int main() {
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
+
         // SEE CONFIG.H FOR INPUTS
-        int hardcoded_chunk_index = HARDCODED_CHUNK_INDEX;
+        std::vector<int> hardcoded_arr_indices = HARDCODED_ARR_INDICES;
         std::vector<std::vector<int>> hardcoded_chunk_indices = HARDCODED_CHUNK_INDICES;
         // bool full_read = FULL_READ;
         std::string my_hardcoded_path = HARDCODED_JSON_PATH;
@@ -35,7 +37,7 @@ int main() {
         std::cout << std::endl;
         std::cout << "Start JSON base metadata extraction..." << std::endl;
 
-        std::string chunks_interm; 
+        std::vector<int> chunks; 
         std::string compressor_id;
         int level;
         std::string dtype;
@@ -43,12 +45,12 @@ int main() {
         int elementsize;
         std::string filter_id;
         std::string order;
-        std::string shape;
+        std::vector<int> shape;
         int zarr_format;
         float add_offset;
         float scale_factor;
 
-        std::tie(chunks_interm, 
+        std::tie(chunks, 
                 compressor_id, 
                 level,
                 dtype,
@@ -62,12 +64,17 @@ int main() {
                 scale_factor
                 ) = readJsonMeta(my_hardcoded_path);
                 
-        std::vector<int> chunks = parseStrToIntVector(chunks_interm);
         std::cout << "JSON base metadata extraction success!" << std::endl;
 
+        // using chunk shape -> get chunk index if not defined and/or confirm
+        std::vector<int> test_chunk_fetch = index_to_chunk(hardcoded_arr_indices, chunks);
+        // TODO: condition format equating vectors
+        // std::cout << test_chunk_fetch[0] << " "<< test_chunk_fetch[1] << " "<< test_chunk_fetch[2] << " "<< test_chunk_fetch[3] << " " << test_chunk_fetch[20] << " "<< std::endl;
+
+        // TODO: define a layout form
+
         // extract chunk data for all passed chunk metadata
-        std::cout << std::endl;
-        std::cout << "Start JSON chunk index-based metadata extraction" << std::endl;
+        std::cout << "\n Start JSON chunk index-based metadata extraction" << std::endl;
         std::vector<int> all_start_bytes;
         std::vector<int> all_num_bytes;
         std::vector<const Aws::String> all_buckets;

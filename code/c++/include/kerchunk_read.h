@@ -455,10 +455,15 @@ void primaryKerchunkRead(Aws::String bucketName,
     std::vector<int8_t> intArr8;
     std::vector<int16_t> intArr16;
     std::vector<int32_t> intArr32;
+    std::vector<int64_t> intArr64;
     // uint
+    std::vector<uint8_t> uintArr8;
+    std::vector<uint16_t> uintArr16;
+    std::vector<uint32_t> uintArr32;
+    std::vector<uint64_t> uintArr64;
+
     // TODO
     // other types
-    // TODO
 
     switch (dataType) {
         case DataType::FLOATING_POINT:
@@ -489,8 +494,38 @@ void primaryKerchunkRead(Aws::String bucketName,
                     fromBufToType_ALL(dest, dresult->size, intArr32, endianness == Endianness::LITTLE);
                     floatArr = scaleAndOffset(intArr32, scale_factor, add_offset);
                     break;
+                case 8: // 8*8 == 64
+                    fromBufToType_ALL(dest, dresult->size, intArr64, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(intArr64, scale_factor, add_offset);
+                    break;
                 default:
                     throw std::runtime_error("Unknown int size encountered");
+                    break;
+            }
+            break;
+        
+        case DataType::UNSIGNED_INTEGER:
+            switch (size_det) {
+                case 1: 
+                    fromBufToType_ALL(dest, dresult->size, uintArr8, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(uintArr8, scale_factor, add_offset);
+                    break;
+                case 2:
+                    fromBufToType_ALL(dest, dresult->size, uintArr16, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(uintArr16, scale_factor, add_offset);
+                    break;
+                case 4:
+                    fromBufToType_ALL(dest, dresult->size, uintArr32, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(uintArr32, scale_factor, add_offset);
+                    break;
+
+                case 8:
+                    fromBufToType_ALL(dest, dresult->size, uintArr64, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(uintArr64, scale_factor, add_offset);
+                    break;
+
+                default:
+                    throw std::runtime_error("Unknown uint size encountered");
                     break;
             }
             break;
@@ -501,59 +536,20 @@ void primaryKerchunkRead(Aws::String bucketName,
 
     if (PRINT_WHOLE_BUFFER) {
         std::cout << "complete fetched buffer result : \n" << std::endl;
+
         for (const auto& element : floatArr) {
             std::cout << static_cast<float>(element) << " ";
         }
-        std::cout << std::endl;
+        std::cout << "\n" << std::endl;
+
+        std::cout << "TEMPORARY: first element of given chunk" << std::endl;
+        std::cout << static_cast<float>(floatArr[0]) << std::endl;
+        std::cout << static_cast<float>(floatArr[1]) << std::endl;
+        std::cout << static_cast<float>(floatArr[2]) << std::endl;
+        std::cout << static_cast<float>(floatArr[3]) << std::endl;
+        std::cout << static_cast<float>(floatArr[4]) << std::endl;
     }
 
-    // numpy decode read
-    /*
-    if (dtype == "<f4") {
-        std::vector<float> floatArr;
-        fromBufToFloatArr_LILf4(dest, dresult->size, floatArr);
-        floatArr = scaleAndOffset(floatArr, scale_factor, add_offset);
-
-        // NOTE: suppressed multi layer representation
-        // out = reconArrSingleChunk(floatArr, dimensions, order);
-
-        if (PRINT_WHOLE_BUFFER) {
-            std::cout << "complete fetched buffer result : \n" << std::endl;
-            for (const auto& element : floatArr) {
-                std::cout << element << " ";
-            }
-            std::cout << std::endl;
-        }
-    } 
-    else if (dtype == "<i2") {
-        std::vector<int16_t> intArr;
-        std::vector<float> final_output;
-        fromBufToIntArr_LILI2(dest, dresult->size, intArr);
-
-        // check non scale/offset type
-        _debugPrintIntArr(intArr);
-
-        final_output = scaleAndOffset(intArr, scale_factor, add_offset);
-
-        // TODO accomodate single chunk construction for diff types
-        // out = reconArrSingleChunk(intArr, dimensions, order);
-        
-        if (PRINT_WHOLE_BUFFER) {
-            std::cout << "complete fetched buffer result : \n" << std::endl;
-            for (const auto& element : final_output) {
-                std::cout << static_cast<float>(element) << " ";
-            }
-            std::cout << std::endl;
-        }
-    }
-    else if (dtype == "|i1") {
-        std::cout << "ERR: reading for this dtype: " << dtype << " not implemented \n" << std::endl;
-        throw std::runtime_error("");
-    }
-    else {
-        std::cout << "ER:: reading for this dtype: " << dtype << " not implemented \n" << std::endl;
-        throw std::runtime_error("");
-    } */
 
     if (TIMER_LOCAL_PROCESS) {
         end_local = std::chrono::system_clock::now();

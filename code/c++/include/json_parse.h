@@ -21,13 +21,6 @@
 using namespace std;
 using json = nlohmann::json;
 
-typedef enum {
-    COMPACT_LAYOUT          = 0,
-    CONTIGUOUS_LAYOUT       = 1,
-    CHUNKED_LAYOUT          = 2,
-    UNKNOWN_LAYOUT          = 3
-} layout_t;
-
 /**
  * @brief split according to character of interest
  * 
@@ -69,7 +62,7 @@ std::string convertToDotSeparatedString(const std::vector<int>& chunk_index) {
  * @return std::tuple< std::string, std::string, int, 
  * std::string, float, int, std::string, std::string, std::string, int> 
  */
-std::tuple< std::string, std::string, int, std::string, float, int, std::string, std::string, std::string, int, double, double> readJsonMeta(std::string path_to_json) {
+std::tuple< std::vector<int>, std::string, int, std::string, float, int, std::string, std::string, std::vector<int>, int, double, double> readJsonMeta(std::string path_to_json) {
     // extract meta data universal for entire arr
     std::ifstream jsonFile(path_to_json);
     if (!jsonFile.is_open()) {
@@ -150,19 +143,29 @@ std::tuple< std::string, std::string, int, std::string, float, int, std::string,
             assert(zarray["zarr_format"] == 2);
 
             // chunks
+            std::vector<int> chunks;
             const nlohmann::json& chunks_arr = zarray["chunks"];
-            std::string chunks = chunks_arr.dump();
+            for (const auto& elem : chunks_arr) {
+                chunks.push_back(static_cast<int>(elem));
+            }
+
+            // shape 
+            std::vector<int> shape;
+            const nlohmann::json& shape_arr = zarray["shape"];
+            for (const auto& elem : shape_arr) {
+                shape.push_back(static_cast<int>(elem));
+            }
+
             // dtype
             std::string dtype = zarray["dtype"];
             // fill val
             float fill_value = zarray["fill_value"];
             // order 
             std::string order = zarray["order"];
-            // shape 
-            const nlohmann::json& shape_arr = zarray["shape"];
-            std::string shape = shape_arr.dump();
             // format
             int zarr_format = zarray["zarr_format"]; 
+            // chunk size
+            // std::vector<int> chunks = zarray["chunk"];
 
             // condition based extraction
             int elementsize;
@@ -335,32 +338,32 @@ std::tuple<std::string, int, int> readChunkMeta(std::string path_to_json, std::v
  * @param input 
  * @return std::vector<int> 
  */
-std::vector<int> parseStrToIntVector(std::string &input) {
-    std::vector<int> dimensions;
-    std::stringstream ss(input);
+// std::vector<int> parseStrToIntVector(std::string &input) {
+//     std::vector<int> dimensions;
+//     std::stringstream ss(input);
 
-    char delimiter;
-    int num;
+//     char delimiter;
+//     int num;
 
-    if (ss >> delimiter && delimiter == '[') {
-        while (ss >> num) {
-            dimensions.push_back(num);
-            if (ss >> delimiter && delimiter == ',') {
-                continue;
-            } else if (delimiter == ']') {
-                break;
-            } else {
-                std::cerr << "Invalid format in the input string." << std::endl;
-                return {};
-            }
-        }
-    } else {
-        std::cerr << "Invalid format in the input string." << std::endl;
-        return {};
-    }
+//     if (ss >> delimiter && delimiter == '[') {
+//         while (ss >> num) {
+//             dimensions.push_back(num);
+//             if (ss >> delimiter && delimiter == ',') {
+//                 continue;
+//             } else if (delimiter == ']') {
+//                 break;
+//             } else {
+//                 std::cerr << "Invalid format in the input string." << std::endl;
+//                 return {};
+//             }
+//         }
+//     } else {
+//         std::cerr << "Invalid format in the input string." << std::endl;
+//         return {};
+//     }
 
-    return dimensions;
-}
+//     return dimensions;
+// }
 
 /**
  * @brief starter test function to test json reading with nlohmann lib
