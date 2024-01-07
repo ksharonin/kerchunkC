@@ -234,59 +234,6 @@ void fromBufToType_ALL(unsigned char* data, std::size_t dataSize, std::vector<T>
     }
 }
 
-#ifndef BUF_TO_FLOATARR_LILF4
-#define BUF_TO_FLOATARR_LILF4
-
-/**
- * @brief equivalent to numpy.frombuffer() - <f4 dtype
- * @param data, dataSize, floatArray
- * @return void
- */
-void fromBufToFloatArr_LILf4(unsigned char* data, uLong dataSize, std::vector<float>& floatArray) {
-    
-    // check system mapping of float sizing
-    assert(sizeof(float) == 4);
-
-    if (dataSize % sizeof(float) != 0) {
-        std::cerr << "Invalid data size. It must be a multiple of sizeof(float)." << std::endl;
-        return;
-    }
-    uLong numFloats = dataSize / sizeof(float);
-    floatArray.resize(numFloats);
-
-    for (uLong i = 0; i < numFloats; ++i) {
-        std::memcpy(&floatArray[i], &data[i * sizeof(float)], sizeof(float));
-        if (!SYS_LITTLE_ENDIAN) {
-            swapBytesFloat(floatArray[i]);
-        }
-    }
-    
-}
-
-#endif
-
-// TODO COMPLETE CHANGE TYPE
-
-/**
- * @brief equivalent to numpy.frombuffer() - <i2 dtype
- * @param data, dataSize, intArray 
- */
-void fromBufToIntArr_LILI2(unsigned char* data, uLong dataSize, std::vector<int16_t>& intArray) {
-    if (dataSize % sizeof(int16_t) != 0) {
-        std::cerr << "Invalid data size. It must be a multiple of sizeof(int16_t)." << std::endl;
-        return;
-    }
-    uLong numInts = dataSize / sizeof(int16_t);
-    intArray.resize(numInts);
-
-    for (uLong i = 0; i < numInts; ++i) {
-        std::memcpy(&intArray[i], &data[i * sizeof(int16_t)], sizeof(int16_t));
-        if (!SYS_LITTLE_ENDIAN) {
-            swapBytesAllType(intArray[i]);
-        }
-    }
-}
-
 #ifndef MANUAL_KREAD
 #define MANUAL_KREAD
 
@@ -300,7 +247,6 @@ void fromBufToIntArr_LILI2(unsigned char* data, uLong dataSize, std::vector<int1
  * how to condition on this? mapping/dict
  * @note make sure "outputData.assign(outputPtr, outputPtr + destSize);" correctly sizes up
  * maybe consider printing vals in the decompressor?
- * @note implement ability to do numcodecs.shuffle.Shuffle(4).decode(buf) where 4 is elem_size
  */
 void primaryKerchunkRead(Aws::String bucketName, 
                         Aws::String objectName, 
@@ -314,7 +260,8 @@ void primaryKerchunkRead(Aws::String bucketName,
                         std::string dtype,
                         std::vector<int> harcoded_test_visit,
                         float add_offset,
-                        float scale_factor
+                        float scale_factor,
+                        int elementsize
                         ) {
 
     // local req flag - assume path stays constant with paired JSON
@@ -427,11 +374,15 @@ void primaryKerchunkRead(Aws::String bucketName,
     // apply corresponding filters
     std::string shuffle_type = "shuffle";
     std::string zlib_type = "zlib";
+    std::string no_filter = "";
+
     if (filters == shuffle_type) {
-        undoShuffle(buf, dest, 4, len);
+        // undoShuffle(buf, dest, 4, len);
+        undoShuffle(buf, dest, elementsize, len);
         _debugPrintAfterUnshuffle(0, 101, dest);
     } else {
-        if (filters != zlib_type) {
+        // with null case it will produce an empty str
+        if (filters != zlib_type && filters != no_filter) {
             throw std::runtime_error("Fatal: Unknown filter encountered, inspect in kerchunk_read.h");
         }
         // copy over into dest - assumes no other but zlib applied
@@ -448,9 +399,14 @@ void primaryKerchunkRead(Aws::String bucketName,
     std::size_t size_det = info.size;
 
     // TODO: find a better way to move rather than outside init
+    // TODO check up on double usage in 64 form
+
+    // master output
+    std::vector<float> floatArr;
 
     // float - also used as output form
-    std::vector<float> floatArr;
+    std::vector<float> floatArr32;
+    std::vector<double> floatArr64;
     // ints
     std::vector<int8_t> intArr8;
     std::vector<int16_t> intArr16;
@@ -468,10 +424,14 @@ void primaryKerchunkRead(Aws::String bucketName,
     switch (dataType) {
         case DataType::FLOATING_POINT:
             switch (size_det) {
-                case 32:
+                case 4:
                     // std::vector<float> floatArr;
-                    fromBufToType_ALL(dest, dresult->size, floatArr, endianness == Endianness::LITTLE);
-                    floatArr = scaleAndOffset(floatArr, scale_factor, add_offset);
+                    fromBufToType_ALL(dest, dresult->size, floatArr32, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(floatArr32, scale_factor, add_offset);
+                    break;
+                case 8:
+                    fromBufToType_ALL(dest, dresult->size, floatArr64, endianness == Endianness::LITTLE);
+                    floatArr = scaleAndOffset(floatArr64, scale_factor, add_offset);
                     break;
                 default:
                     throw std::runtime_error("Unknown float size encountered");
@@ -576,23 +536,5 @@ void primaryKerchunkRead(Aws::String bucketName,
 }
 #endif
 
-
-/**
- * @brief UNFINISHED main entry point for numpy.frombuffer(); call halpers based on dtype
- * @param 
- * @return void
- * @note must account for dtype reading e.g. dtype='<f4'
- * https://numpy.org/doc/stable/reference/generated/numpy.frombuffer.html
- * 
-void bufToArr(unsigned char* buf, std::string dtype) {
-    // TODO
-    if (dtype == "<f4") {
-        std::cout << "reading for this dtype not implemented" << std::endl;
-    }
-    else {
-        std::cout << "reading for this dtype not implemented" << std::endl;
-    }
-}
-*/
 
 

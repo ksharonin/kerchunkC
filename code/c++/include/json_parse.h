@@ -185,6 +185,8 @@ std::tuple< std::vector<int>, std::string, int, std::string, float, int, std::st
 
             // filters 
             json filters = json::parse((std::string) zarray["filters"][0].dump());
+
+
             if (filters.contains("elementsize") && filters.contains("id")) {
                 elementsize = filters["elementsize"];
                 filter_id = filters["id"];
@@ -217,7 +219,6 @@ std::tuple< std::vector<int>, std::string, int, std::string, float, int, std::st
             // const nlohmann::json& arr_dims = zattrs["_ARRAY_DIMENSIONS"];
             // std::string array_dims = arr_dims.dump();
 
-            // TODO: need tor return all new generated vars
             return  std::make_tuple(chunks, 
                                     compressor_id, 
                                     level,

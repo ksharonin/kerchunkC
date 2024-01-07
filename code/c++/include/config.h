@@ -21,16 +21,18 @@
 // #define HARDCODED_CHUNK_INDEX 0
 
 // visit multiple chunks at indices e.g. chunk 0, chunk 1, chunk 2
-#define HARDCODED_CHUNK_INDICES {{0, 0, 0, 17}} 
+#define HARDCODED_CHUNK_INDICES {{0, 0, 0, 17}}
+// {{0, 0, 0, 17}} // for GOES 2023-006
 // {{0, 0}} // for h5
 // {{20, 0}}
 // {{0, 0, 0, 17}, {0, 0, 0, 18}}
 
 // implement actual x,y,z etc index visitation, assumes dim adherence
-#define HARDCODED_ARR_INDICES {0,0,225,3843} 
+#define HARDCODED_ARR_INDICES {1, 0, 0}
+// {0,0,225,3843} <- for 2023-006
 
 // TODO eventually support range of indices
-#define HARDCODED_ARR_SLICE {(0,1), (0,1), (0,1)}
+#define HARDCODED_ARR_INDICES_RANGE {{0,1}, {0,1}, {0,1}}
 
 // read ALL chunks as indicated by json
 #define FULL_READ false
@@ -39,25 +41,25 @@
 #define USE_LOCAL true
 
 // path to metadata JSON
-#define HARDCODED_JSON_PATH "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
+#define HARDCODED_JSON_PATH "/Users/katrinasharonin/Downloads/kerchunkC/jsons/ATL03_REF_NONUTM.json"
+// "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
+// "/Users/katrinasharonin/Downloads/kerchunkC/jsons/ATL03_REF_NONUTM.json" 
+// "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
 // "/Users/katrinasharonin/Downloads/kerchunkC/jsons/ATL03_REF_NONUTM.json" 
 // "/Users/katrinasharonin/Downloads/kerchunkC/jsons/2023-006.json"
 // "/Users/katrinasharonin/Downloads/kerchunkC/jsons/ATL03_REF_NONUTM.json" 
 // "/Users/katrinasharonin/Downloads/kerchunkC/jsons/01_air_pressure_at_mean_sea_level.json"
 
-// hardcoded byte stream source local to device
-// #define HARCODED_LOCAL_NC_PATH "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060550309_e20230060559376_c20230060559423.nc"
-// "/Users/katrinasharonin/Downloads/GOES_17_recreation/GOES_17_Sample_Data/2023/006/05/OR_ABI-L1b-RadF-M6C01_G17_s20230060500309_e20230060509376_c20230060509434.nc"
-// "/Users/katrinasharonin/Downloads/2020_01_data_air_pressure_at_mean_sea_level.nc"
-
 // hardcoded dataset name/path in file, leave as "" if not applicable
-#define HARDCODED_DATASET_NAME ""
+#define HARDCODED_DATASET_NAME "/ancillary_data/calibrations/first_photon_bias/gt1l/"
+// ""
 // "/gt1l/heights/"
 // ""
 // "/quality_assessment/gt2l/"
 
 // harcoded variable; if single variable you can leave as ""
-#define HARDCODED_VARIABLE "Rad"
+#define HARDCODED_VARIABLE "ffb_corr"
+// "Rad"
 // "signal_conf_ph"
 // "Rad" 
 // "signal_conf_ph"
@@ -69,7 +71,7 @@
 // print at indices, assuming layer_T make it done
 #define PRINT_AT_TEST_VISIT false
 // print entire fetched buffer
-#define PRINT_WHOLE_BUFFER false
+#define PRINT_WHOLE_BUFFER true
 // verbose printing
 #define DEBUG_PRINT_ON false
 // timers

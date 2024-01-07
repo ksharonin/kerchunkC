@@ -28,7 +28,9 @@ int main() {
 
         // SEE CONFIG.H FOR INPUTS
         std::vector<int> hardcoded_arr_indices = HARDCODED_ARR_INDICES;
+        std::vector<std::vector<int>> hardcoded_arr_indices_range =  HARDCODED_ARR_INDICES_RANGE;
         std::vector<std::vector<int>> hardcoded_chunk_indices = HARDCODED_CHUNK_INDICES;
+
         // bool full_read = FULL_READ;
         std::string my_hardcoded_path = HARDCODED_JSON_PATH;
         std::vector<int> hardcoded_test_visit = HARDCODED_TEST_VISIT;
@@ -66,10 +68,20 @@ int main() {
                 
         std::cout << "JSON base metadata extraction success!" << std::endl;
 
+        // if empty indices range, just do single version 
+        // std::vector<int> test_chunk_fetch;
+        // if (hardcoded_arr_indices_range.empty()):
+        //     test_chunk_fetch = index_to_chunk(hardcoded_arr_indices, chunks);
+        // else:
+
         // using chunk shape -> get chunk index if not defined and/or confirm
         std::vector<int> test_chunk_fetch = index_to_chunk(hardcoded_arr_indices, chunks);
+        hardcoded_chunk_indices = {test_chunk_fetch};
+        
         // TODO: condition format equating vectors
         // std::cout << test_chunk_fetch[0] << " "<< test_chunk_fetch[1] << " "<< test_chunk_fetch[2] << " "<< test_chunk_fetch[3] << " " << test_chunk_fetch[20] << " "<< std::endl;
+
+        // TODO: condition if left empty to use pure chunk indices
 
         // TODO: define a layout form
 
@@ -107,7 +119,8 @@ int main() {
                     dtype, 
                     hardcoded_test_visit,
                     add_offset,
-                    scale_factor
+                    scale_factor,
+                    elementsize
                     );
 
     }
