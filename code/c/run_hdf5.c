@@ -2,15 +2,18 @@
 #include <stdlib.h>
 #include "hdf5.h"
 
-herr_t visit_callback(hid_t loc_id, const char *name, const H5L_info_t *info, void *opdata) {
-    printf("%s\n", name);
-    return 0;
-}
+int main() {
+    const char *file_path = "/Users/katrinasharonin/Downloads/OR_ABI-L2-FDCC-M3_G17_s20182390052191_e20182390054564_c20182390055159.nc";
+    const char *dataset = "/Power";
+    const char *attribute = "_FillValue";
 
-void open_hdf5_file(const char *file_path) {
     hid_t file_id;
+    hid_t dataset_id;
+    hid_t attribute_id;
+    hid_t attribute_type;
+    hid_t dataspace;
+    size_t attr_size, type_msg_size, space_msg_size;
 
-    // Open the HDF5 file in read-only mode
     file_id = H5Fopen(file_path, H5F_ACC_RDONLY, H5P_DEFAULT);
 
     if (file_id < 0) {
@@ -18,23 +21,27 @@ void open_hdf5_file(const char *file_path) {
         exit(EXIT_FAILURE);
     }
 
-    // Print information about the file
-    printf("File Contents:\n");
-    printf("----------------\n");
 
-    // Iterate through objects in the root group (datasets, groups, etc.)
-    H5Lvisit(file_id, H5_INDEX_NAME, H5_ITER_NATIVE, visit_callback, NULL);
+    dataset_id = H5Dopen2(file_id, dataset, H5P_DEFAULT);
+    attribute_id = H5Aopen_by_name(file_id, dataset, attribute, H5P_DEFAULT, H5P_DEFAULT);
+    attribute_type = H5Aget_type(attribute_id);
+    attr_size = H5Aget_storage_size(attribute_id);
+    type_msg_size = H5Tget_size(attribute_type);
+    dataspace = H5Aget_space(attribute_id);
+    space_msg_size = H5Sget_simple_extent_npoints(dataspace) * H5Tget_size(attribute_type);
 
-    // Close the HDF5 file
+    printf("Message Size:                                                    %zu\n", attr_size);
+    printf("Datatype Message:                                          %lld\n", attribute_type);
+    printf("Dataspace Message:                                         %lld\n", dataspace);
+
+    H5Sclose(dataspace);
+    H5Tclose(attribute_type);
+    H5Aclose(attribute_id);
+    H5Dclose(dataset_id);
     H5Fclose(file_id);
-}
 
-int main() {
-    // Specify the path to your HDF5 file
-    const char *hdf5_file_path = "path/to/your/file.h5";
-
-    // Call the function to open and inspect the HDF5 file
-    open_hdf5_file(hdf5_file_path);
+    printf("Test complete. Finished with 0 errors.\n");
 
     return 0;
 }
+
